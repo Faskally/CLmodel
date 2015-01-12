@@ -48,15 +48,36 @@ wk $ year <- lubridate::year(wk $ Date)
 wk $ doy <- lubridate::yday(wk $ Date)
 
 # add in data summaries
-wk $ T <- rowSums(wk[c("n_R1", "n_R2", "n_R3")])
-wk $ X <- with(wk, 2*n_R1 + n_R2)
-wk $ Z <- wk $ X / wk $ T
+wk $ Tobs <- rowSums(wk[c("n_R1", "n_R2", "n_R3")])
+wk $ Xobs <- with(wk, 2*n_R1 + n_R2)
+wk $ Zobs <- wk $ Xobs / wk $ Tobs
 
 # trim data
-wk <- subset(wk, doy > 150 & doy < 325 & year >= 1997 & year <= 2013 & Runs == 3 & T > 0)
+wk <- subset(wk, doy > 150 & doy < 325 & year >= 1997 & year <= 2013 & Runs == 3 & Tobs > 0)
 
 head(wk)
 ```
 
-This provides `r nrow(wk)` observations to play with.  Okay lets simulate some 3 pass data using a constant capture probabilty, but condition on the total number of fish observed.
+This provides `r nrow(wk)` observations to play with.  Okay lets simulate some 3 pass data using a constant capture probabilty, but try and get similar values for the total number of fish observed.
+
+```{r sim1_setup, dependson = "dataframe1"}
+# choose model parameter to give p of 0.6
+alpha <- log(0.6/0.4)
+X <- model.matrix( ~ 1, data = wk)
+wk $ p <- (1 + exp(X %*% alpha))^-1
+wk $ N <- round(wk $ Tobs / (1 - (1-p)^3))
+n1 <- rbinom(nrow(wk), wk $ N, p)
+n2 <- rbinom(nrow(wk), wk $ N - n1, p)
+n3 <- rbinom(nrow(wk), wk $ N - n1 - n2, p)
+
+wk $ T <- n1 + n2 + n3
+wk $ X <- 2 * n1 + n2
+wk $ Z <- wk $ X / wk $ T
+```
+
+now try to fit the model and see what we get
+
+```{r sim1_fit}
+m0 <- efp(X ~ 1, data = wk, passes = "Runs")
+```
 
