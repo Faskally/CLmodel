@@ -16,7 +16,8 @@ knitr::opts_chunk$set(
   tidy = FALSE,
   comment="",
   message = FALSE,
-  eval=FALSE)
+  eval=FALSE,
+  cache=FALSE)
 ```
 
 # Estimating density and capture probability from electrofishing data
@@ -47,7 +48,7 @@ library(rstan)
 
 In order to model the data we need to convert it to a more convient form and add in covariates.
 
-```{r the-data, cache=TRUE}
+```{r the-data}
 # subset data to remove Stocking, low Runs and no area.
 ef <- subset(ef, !is.na(Site_OBJECTID) & !is.na(Area) & Runs > 2 & Stocked == "No")
 
@@ -124,7 +125,7 @@ A most simple model is one where we assume the capture probabilities are everywh
 
 Model fitting proceeds as follows.  First we estimate the capture probability using the optimiser in stan
 
-```{r stanmod, cache=TRUE, eval=FALSE}
+```{r stanmod, eval=FALSE}
 # compile the model up model
 require(rstan)
 stanmod <- stan_model(model_code = "
@@ -152,7 +153,7 @@ model {
 }")
 ```
 
-```{r somefunctions, echo=FALSE, cache=TRUE}
+```{r somefunctions, echo=FALSE}
 # do some model selection
 summaryMods <- function(lst, m0 = NULL) {
   aics <- sapply(lst, "[[", "aic")
@@ -184,25 +185,25 @@ getModels <- function(vars, n) {
 
 we use the function `efp` which stands for electrofishing p to get the maximum likelihood estimates of $p$ given our model for $p$ and a full model for lambda, in this case it is one $p$ for everything.
 
-```{r basicfit, cache=TRUE, dependson=c("the-data", "stanmod")}
+```{r basicfit, dependson=c("the-data", "stanmod")}
 m0 <- efp(X ~ 1, data = ef)
 AIC(m0)
 ```
 
 For brevity will focus on a few effects.  We know from preliminary analysis that space has a strong effect
 
-```{r fit1, cache=TRUE, dependson=c("the-data", "stanmod")}
+```{r fit1, dependson=c("the-data", "stanmod")}
 m1 <- efp(X ~ te(NEAR_X, NEAR_Y, k = 6), data = ef)
 AIC(m1) - AIC(efp(X ~ 1, data = ef, verbose = FALSE))
 ```
 
-```{r plot1, cache=TRUE, dependson=c("the-data", "stanmod")}
+```{r plot1, dependson=c("the-data", "stanmod")}
 vis.gam(g1, plot.type = "contour", type = "response")
 plot(hma, add=TRUE)
 ```
 
 
-```{r fit1, cache=TRUE, dependson=c("the-data", "stanmod")}
+```{r sim1, dependson=c("the-data", "stanmod")}
 # simulation testing
 test <- data.frame(s = 3, T = 100, X = rnorm(100, 170))
 test $ Z <- with(test, X/T)
