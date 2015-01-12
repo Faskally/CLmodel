@@ -1,2 +1,7 @@
 cache
 figure
+
+*.R
+*.html
+*.md
+*.build.timestamp
