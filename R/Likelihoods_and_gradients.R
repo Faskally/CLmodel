@@ -175,7 +175,7 @@ efp <- function(formula, data = NULL, passes = NULL, verbose=TRUE, init = "0") {
         expeta <- exp(A * alpha);
         for (i in 1:N) {
           real p;
-          p <- 1.0/(1.0 + expeta[i]);
+          p <- expeta[i]/(1.0 + expeta[i]);
           increment_log_prob(T[i] * log(p));
           increment_log_prob(T[i] * R[i] * log(1-p));
           increment_log_prob(-T[i] * log(1 - (1-p)^S[i]) );
