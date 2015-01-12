@@ -15,7 +15,8 @@ knitr::opts_chunk$set(
   fig.path = "figure/model-fit/",
   tidy = FALSE,
   comment="",
-  message = FALSE)
+  message = FALSE,
+  eval=FALSE)
 ```
 
 # Estimating density and capture probability from electrofishing data
