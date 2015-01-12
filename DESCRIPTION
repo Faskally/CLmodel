@@ -1,0 +1,21 @@
+Package: CLmodel
+Title: Modelling Framework for the Estimation of Salmonid Abundance in Scottish Rivers
+Version: 0.0.1
+Authors@R: as.person(c(
+    "Colin Millar <C.Millar@marlab.ac.uk> [aut, cre]",
+    "Rob Fryer <R.Fryer@marlab.ac.uk> [ctb]",
+    "Iain Malcolm <I.Malcolm@marlab.ac.uk> [ctb]"))
+Description:  The package contains set of functions to estimate juvenile
+    densities of Salmon and Trout on river networks
+Depends: 
+     R (>= 3.1.2)
+Imports:
+    mgcv (>= 1.8-3)
+Suggests:
+    sp (>= 1.0-16),
+    knitr (>= 1.8),
+    CLdata (>= 0.0.1)
+License: file LICENSE
+LazyData: true
+Suggests: knitr
+VignetteBuilder: knitr
