@@ -154,10 +154,41 @@
 #' @export
 #' @examples
 #' # none yet
-efp <- function(formula, data = NULL, verbose=TRUE, init = "0") {
+efp <- function(formula, data = NULL, passes = NULL, verbose=TRUE, init = "0") {
 
-  if (is.null(data)) stop("must suply data")
+  if (!exists("stanmod")) {
+    message("Building optimiser for first use...")
+    stanmod <- rstan::stan_model(model_code = "
+      data {
+        int<lower=0> N; // number of observations
+        int<lower=0> K; // number of parameters
+        real S[N]; // the number of fishing passes
+        real R[N]; // Zippins R (see seber p 312, eq 7.22)
+        real T[N]; // total catches
+        matrix[N,K] A;
+      }
+      parameters {
+        vector[K] alpha;
+      } 
+      model {
+        vector[N] expeta;
+        expeta <- exp(A * alpha);
+        for (i in 1:N) {
+          real p;
+          p <- 1.0/(1.0 + expeta[i]);
+          increment_log_prob(T[i] * log(p));
+          increment_log_prob(T[i] * R[i] * log(1-p));
+          increment_log_prob(-T[i] * log(1 - (1-p)^S[i]) );
+        }
+      }")
+    assign("stanmod", stanmod, .GlobalEnv)
+  }
+
+  if (is.null(data)) stop("must supply data")
   data0 <- subset(data, T > 0)
+
+  if (is.null(passes)) stop("must supply the number of fishing runs")
+  data0 $ S <- data0[[passes]]
 
   # set up model
   if (nrow(data0) == 1) {
@@ -169,7 +200,7 @@ efp <- function(formula, data = NULL, verbose=TRUE, init = "0") {
 
   standat <- 
     list(N = nrow(G), K = ncol(G), 
-         S = data0 $ s, T = data0 $ T, R = with(data0, s - 1 - Z),
+         S = data0 $ S, T = data0 $ T, R = with(data0, S - 1 - Z),
          A = G)
 
   opt <- optimizing(stanmod, data = standat, algorith = "BFGS", hessian = TRUE, verbose = verbose, init = init)
