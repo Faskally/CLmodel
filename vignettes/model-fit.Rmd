@@ -1,0 +1,236 @@
+---
+title: "Estimating density and capture probability from electrofishing data"
+author: "Colin Millar"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\usepackage[utf8]{inputenc}
+---
+
+```{r init, echo=FALSE}
+knitr::opts_chunk$set(
+  cache.path = "cache/model-fit/",
+  fig.path = "figure/model-fit/",
+  tidy = FALSE,
+  comment="",
+  message = FALSE)
+```
+
+# Estimating density and capture probability from electrofishing data
+
+In this document we will use the data provided by the CLdata package. [quick summary of CL data].  This is loaded using
+
+```{r}
+library(CLdata)
+```
+
+and the data is accessed through the `data` function.
+
+```{r}
+data(ef)
+data(gis)
+data(hma)
+```
+
+Other useful libraries are
+
+```{r}
+library(sp)
+require(spdep)
+library(rstan)
+```
+
+## Getting the data ready
+
+In order to model the data we need to convert it to a more convient form and add in covariates.
+
+```{r the-data, cache=TRUE}
+# subset data to remove Stocking, low Runs and no area.
+ef <- subset(ef, !is.na(Site_OBJECTID) & !is.na(Area) & Runs > 2 & Stocked == "No")
+
+# restructure ef
+ef <- do.call(rbind, 
+        lapply(c("S0", "SP", "T0", "TP"), 
+            function(x) {
+              out <- ef[c("Site_OBJECTID", "Site.Name", "Dataset", "Date", "Runs", "Area", paste0(x, "_R", 1:6))]
+              names(out) <- gsub(x, "n", names(out))
+              out $ Species <- if (substring(x, 1, 1) == "S") "Salmon" else "Trout"
+              out $ LifeStage <- if (substring(x, 2, 2) == "0") "Fry" else "Parr"
+              out
+            }
+        ))
+
+# drop rows with all NAs
+ef <- ef[apply(ef[paste0("n_R", 1:6)], 1, function(x) !all(is.na(x))), ]
+
+
+# tag on HMA data
+hma <- hma[!(hma $ HAName %in% c("Shetlands", "Orkneys")),]
+hma $ hmidx <- 1:nrow(hma)
+gis @ data <- cbind(gis @ data, over(gis, hma))
+
+# work out neighbourhood structure of hma
+hmaadj0 <- poly2nb(hma, queen = FALSE)
+hmaadj <- unclass(hmaadj0)
+attributes(hmaadj) <- NULL
+names(hmaadj) <- paste(1:length(hmaadj))
+# connect hebrides
+hmaadj[[which(hma $ HAName == "Outer Hebrides")]] <- which(hma $ HAName == "Inner Hebrides")
+hmaadj[[which(hma $ HAName == "Inner Hebrides")]] <-  c(21, 42, 43)
+
+
+# tag on gis data
+ef <- cbind(ef, gis[ef $ Site_OBJECTID,])
+# subset put sites above barriers
+ef <- subset(ef, !barrier)
+# fix missing value
+ef $ n_R3[is.na(ef $ n_R3) & ef $ Runs == 3] <- 0
+# add on data summaries
+ef <- cbind(ef, CLmodel::getData(ef, passnames = paste0("n_R", 1:6)))
+# add in some dates
+ef $ pDate <- as.POSIXlt(ef $ Date, tz = "GMT", format = "%d/%m/%Y")
+# try using lubridate
+ef $ year <- ef $ pDate $ year + 1900
+ef $ doy <- ef $ pDate $ yday
+
+# trim data
+ef <- subset(ef, doy > 150 & doy < 325 & year >= 1997 & year <= 2013)
+# work only with salmon fry
+#ef <- subset(ef, Species == "Salmon" & LifeStage == "Fry")
+```
+
+now the data is in a suitable form for modelling
+
+```{r, dependson="the-data"}
+str(ef)
+```
+
+## fitting a basic model: the basic likelihood
+
+The likelihood of the site densities $\lambda$ and the capture probabilities $p$ can be written in terms of two statistics $T_i=\sum_{s} n_{is}$, the total number of fish caught in each electrofishing event, $i$, and $Z=$ a quantity which measures the effective number of fishing passes - i.e. whether all fish are caught during the first pass or whether they were spread out accross several fishing passes.
+
+$L(\lambda, \beta; T, Z) = \prod_i (p_i (1-p_i)^{S_i - 1 - Z_i} \lambda_i)^{T_i} \exp(- (1-(1-p_i)^{S_i}) \lambda_i )$
+
+We can model both the $p$ and the $\lambda$ parameters in terms of linear combinations of covariates by transforming the density and capture probability onto the real line:
+
+$\log(\lambda_i) = A_i \alpha$ and $\log \frac{p_i}{1-p_i} = B_i \beta$
+
+It is possible to estimate the $\alpha$ parameters conditional on the design matrix $B$ and then the estimates of $\beta$ can be estimated from a poisson regression.  However, to conduct model selection or to calculate confidence intervals the full likelihood must be used.
+
+A most simple model is one where we assume the capture probabilities are everywhere constant.
+
+Model fitting proceeds as follows.  First we estimate the capture probability using the optimiser in stan
+
+```{r stanmod, cache=TRUE, eval=FALSE}
+# compile the model up model
+require(rstan)
+stanmod <- stan_model(model_code = "
+data {
+  int<lower=0> N; // number of observations
+  int<lower=0> K; // number of parameters
+  real S[N]; // the number of fishing passes
+  real R[N]; // Zippins R (see seber p 312, eq 7.22)
+  real T[N]; // total catches
+  matrix[N,K] A;
+}
+parameters {
+  vector[K] alpha;
+} 
+model {
+  vector[N] expeta;
+  expeta <- exp(A * alpha);
+  for (i in 1:N) {
+    real p;
+    p <- 1.0/(1.0 + expeta[i]);
+    increment_log_prob(T[i] * log(p));
+    increment_log_prob(T[i] * R[i] * log(1-p));
+    increment_log_prob(-T[i] * log(1 - (1-p)^S[i]) );
+  }
+}")
+```
+
+```{r somefunctions, echo=FALSE, cache=TRUE}
+# do some model selection
+summaryMods <- function(lst, m0 = NULL) {
+  aics <- sapply(lst, "[[", "aic")
+
+  tab <- 
+   data.frame(
+    forms = sapply(lst[order(aics)], function(x) paste(deparse(x$formula, width.cutoff = 500L))),
+    aic = sort(aics)
+    )
+
+  if (!is.null(m0)) tab $ Daic <- tab $ aic - AIC(m0)
+
+  unique(tab)  
+}
+
+getModels <- function(vars, n) {
+  if (n > length(vars)) stop("n too big for number of variable")
+  out <- do.call(expand.grid, lapply(1:n, function(i) 1:length(vars)))
+  out <- unique(t(apply(out, 1, sort)))
+  out <- out[apply(out, 1, function(x) !any(table(x)>1)),,drop=FALSE]
+  rownames(out) <- NULL
+  if (n > 1) {
+    apply(out, 1, function(x) paste(vars[x], collapse = " + "))
+  } else {
+    vars[out]
+  }
+}
+```
+
+we use the function `efp` which stands for electrofishing p to get the maximum likelihood estimates of $p$ given our model for $p$ and a full model for lambda, in this case it is one $p$ for everything.
+
+```{r basicfit, cache=TRUE, dependson=c("the-data", "stanmod")}
+m0 <- efp(X ~ 1, data = ef)
+AIC(m0)
+```
+
+For brevity will focus on a few effects.  We know from preliminary analysis that space has a strong effect
+
+```{r fit1, cache=TRUE, dependson=c("the-data", "stanmod")}
+m1 <- efp(X ~ te(NEAR_X, NEAR_Y, k = 6), data = ef)
+AIC(m1) - AIC(efp(X ~ 1, data = ef, verbose = FALSE))
+```
+
+```{r plot1, cache=TRUE, dependson=c("the-data", "stanmod")}
+vis.gam(g1, plot.type = "contour", type = "response")
+plot(hma, add=TRUE)
+```
+
+
+```{r fit1, cache=TRUE, dependson=c("the-data", "stanmod")}
+# simulation testing
+test <- data.frame(s = 3, T = 100, X = rnorm(100, 170))
+test $ Z <- with(test, X/T)
+m1 <- efp(X ~ 1, data = test)
+1/(1 + exp(m1 $ par))
+```
+
+```{r}
+efS0 <- subset(ef, Species=="Salmon" & LifeStage == "Fry")
+m1 <- efp(X ~ DESCRIPTIO - 1, data = subset(efS0, T>0))
+m1
+sort(m1 $ coefficients)
+
+# get a gam container
+g1 <- gam(G = m1 $ Gsetup)
+g1 $ coefficients[] <- m1 $ par       
+g1 $ Vp[] <- m1 $ Vb
+g1 $ family <- binomial()
+
+ef $ fittedp <- predict(g1, newdata = ef, type = "response")
+
+plot(g1)
+
+
+head(subset(ef[order(ef $ Z),], T > 0), 100)
+head(subset(ef[order(ef $ Z),c("Dataset", "Site.Name", "T", "Z")], T > 10), 200)
+histogram(~ (X/T)/(s-1) | substring(DESCRIPTIO, 1, 7), data = subset(efS0, T > 10))
+
+```
+
+
+
