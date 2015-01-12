@@ -14,10 +14,49 @@ knitr::opts_chunk$set(
   cache.path = "cache/simulation/",
   fig.path = "figure/simulation/",
   tidy = FALSE,
-  comment="",
-  message = FALSE)
+  comment = "",
+  message = FALSE,
+  cache = TRUE,
+  eval = TRUE)
 ```
 
-# Estimating density and capture probability from electrofishing data
+## Simulation code
 
-In this document we will use the data provided by the CLdata package. [quick summary of CL data].  This is loaded using
+Lets begin with a simple simulation.  First lets setup a basic data.frame from which to work.  This requires the CLdata and lubridate packages to have been installed.
+
+```{r dataframe1}
+wk <- subset(CLdata::ef, Dataset == "fobs")
+
+# restructure
+wk <- do.call(rbind, 
+        lapply(c("S0", "SP", "T0", "TP"), 
+            function(x) {
+              out <- wk[c("Site_OBJECTID", "Site.Name", "Dataset", "Date", "Runs", "Area", paste0(x, "_R", 1:6))]
+              names(out) <- gsub(x, "n", names(out))
+              out $ Species <- if (substring(x, 1, 1) == "S") "Salmon" else "Trout"
+              out $ LifeStage <- if (substring(x, 2, 2) == "0") "Fry" else "Parr"
+              out
+            }
+        ))
+
+# drop rows with all NAs
+wk <- wk[apply(wk[paste0("n_R", 1:6)], 1, function(x) !all(is.na(x))), ]
+
+# try using lubridate
+wk $ Date <- as.POSIXlt(wk $ Date, tz = "GMT", format = "%d/%m/%Y")
+wk $ year <- lubridate::year(wk $ Date)
+wk $ doy <- lubridate::yday(wk $ Date)
+
+# add in data summaries
+wk $ T <- rowSums(wk[c("n_R1", "n_R2", "n_R3")])
+wk $ X <- with(wk, 2*n_R1 + n_R2)
+wk $ Z <- wk $ X / wk $ T
+
+# trim data
+wk <- subset(wk, doy > 150 & doy < 325 & year >= 1997 & year <= 2013 & Runs == 3 & T > 0)
+
+head(wk)
+```
+
+This provides `r nrow(wk)` observations to play with.  Okay lets simulate some 3 pass data using a constant capture probabilty, but condition on the total number of fish observed.
+
