@@ -174,3 +174,6 @@ names(out) <- paste("alpha", 1:length(out))
 out
 ```
 
+Excellent performance so far :).
+
+
