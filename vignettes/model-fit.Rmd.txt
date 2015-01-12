@@ -127,8 +127,7 @@ Model fitting proceeds as follows.  First we estimate the capture probability us
 
 ```{r stanmod, eval=FALSE}
 # compile the model up model
-require(rstan)
-stanmod <- stan_model(model_code = "
+stanmod <- rstan::stan_model(model_code = "
 data {
   int<lower=0> N; // number of observations
   int<lower=0> K; // number of parameters
