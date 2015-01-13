@@ -202,9 +202,15 @@ efp <- function(formula, data = NULL, passes = NULL, verbose=TRUE, init = "0", h
     list(N = nrow(G), K = ncol(G), 
          S = data0 $ S, T = data0 $ T, R = with(data0, S - 1 - Z),
          A = G)
+  if (!verbose) {
+    tmp <- 
+      capture.output(
+        opt <- rstan::optimizing(stanmod, data = standat, algorith = "BFGS", hessian = hessian, verbose = verbose, init = init)
+      )
+  } else {
+    opt <- rstan::optimizing(stanmod, data = standat, algorith = "BFGS", hessian = hessian, verbose = verbose, init = init)
+  } 
 
-  opt <- rstan::optimizing(stanmod, data = standat, algorith = "BFGS", hessian = hessian, verbose = verbose, init = init)
-   
   opt $ formula <- formula # for printing and summary
   opt $ llik <- opt $ value
   opt $ terms <- Gsetup $ terms
