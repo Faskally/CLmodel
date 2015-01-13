@@ -17,7 +17,7 @@ knitr::opts_chunk$set(
   comment="",
   message = FALSE,
   eval=TRUE,
-  cache=FALSE)
+  cache=TRUE)
 
 library(sp)
 require(spdep)
@@ -80,7 +80,9 @@ ef $ pDate <- as.POSIXlt(ef $ Date, tz = "GMT", format = "%d/%m/%Y")
 ef $ year <- ef $ pDate $ year + 1900
 ef $ doy <- ef $ pDate $ yday
 # add river classification
-ef $ RIVCLASS <- sapply(strsplit(paste(ef $ RIVCODE), "/"), "[[", 2)
+ef $ RIVCLASS <- as.numeric(sapply(strsplit(paste(ef $ RIVCODE), "/"), "[[", 2))
+ef $ HC <- ifelse(ef $ RIVCLASS == 0, 0, 
+             ifelse(round(ef $ RIVCLASS) == ef $ RIVCLASS, 1, 2 ))
 
 
 # trim data
@@ -151,7 +153,7 @@ AIC(m0)
 
 For brevity will focus on a few effects.  We know from preliminary analysis that space has a strong effect
 
-```{r fit1, dependson=c("the-data")}
+```{r fit1, dependson=c("the-data"), results="hide"}
 f1s <- c("Trust",
          "HAName",
          "DESCRIPTIO",
@@ -161,15 +163,37 @@ f1s <- c("Trust",
          "factor(year)",
          "s(year, k=3)",
          "poly(Area, 1)",
-         "RIVCLASS"
+         "factor(RIVCLASS)",
+         "factor(HC)"
          )
 forms <- lapply(getModels(f1s, 1), function(x) as.formula(paste0("X ~ ", x)))
 mods <- lapply(forms, efp, data = ef, passes = "Runs")
 m0 <- efp(X ~ 1, data = ef, passes = "Runs")
-summaryMods(mods, m0 = m0)
-# summaries first fits
-
 ```
+
+```{r summary1, dependson=c("fit1")}
+summaryMods(mods, m0 = m0)
+```
+
+
+```{r plotfit1, dependson=c("the-data")}
+m1 <- efp(X ~ factor(CATCH_ID), data = ef, passes = "Runs")
+
+# remove zeros
+wk <- subset(ef, T > 0)
+wk $ p <- m1 $ fitted
+wk <- unique(wk[c("p", "CATCH_ID")])
+wk <- wk[order(wk $ CATCH_ID),]
+rownames(wk) <- paste(wk $ CATCH_ID)
+redctm <- CLdata::redctm
+redctm $ p <- wk[paste(redctm $ CATCH_ID),] $ p
+spplot(redctm, "p", cuts = 8, col.regions=heat.colors(9))
+# the range of capture probabilities
+lattice::histogram(~p, data = wk)
+```
+
+Now we will try and add additional effects
+
 
 
 
