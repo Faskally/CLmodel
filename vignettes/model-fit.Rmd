@@ -16,33 +16,15 @@ knitr::opts_chunk$set(
   tidy = FALSE,
   comment="",
   message = FALSE,
-  eval=FALSE,
+  eval=TRUE,
   cache=FALSE)
-```
 
-# Estimating density and capture probability from electrofishing data
-
-In this document we will use the data provided by the CLdata package. [quick summary of CL data].  This is loaded using
-
-```{r}
-library(CLdata)
-```
-
-and the data is accessed through the `data` function.
-
-```{r}
-data(ef)
-data(gis)
-data(hma)
-```
-
-Other useful libraries are
-
-```{r}
 library(sp)
 require(spdep)
 library(rstan)
 ```
+
+# Estimating density and capture probability from electrofishing data
 
 ## Getting the data ready
 
@@ -50,13 +32,13 @@ In order to model the data we need to convert it to a more convient form and add
 
 ```{r the-data}
 # subset data to remove Stocking, low Runs and no area.
-ef <- subset(ef, !is.na(Site_OBJECTID) & !is.na(Area) & Runs > 2 & Stocked == "No")
+ef <- subset(CLdata::ef, !is.na(Site_OBJECTID) & !is.na(Area) & Runs > 2 & Stocked == "No")
 
 # restructure ef
 ef <- do.call(rbind, 
         lapply(c("S0", "SP", "T0", "TP"), 
             function(x) {
-              out <- ef[c("Site_OBJECTID", "Site.Name", "Dataset", "Date", "Runs", "Area", paste0(x, "_R", 1:6))]
+              out <- ef[c("Site_OBJECTID", "Site.Name", "Dataset", "Date", "Runs", "Area", "Trust", paste0(x, "_R", 1:6))]
               names(out) <- gsub(x, "n", names(out))
               out $ Species <- if (substring(x, 1, 1) == "S") "Salmon" else "Trout"
               out $ LifeStage <- if (substring(x, 2, 2) == "0") "Fry" else "Parr"
@@ -67,10 +49,11 @@ ef <- do.call(rbind,
 # drop rows with all NAs
 ef <- ef[apply(ef[paste0("n_R", 1:6)], 1, function(x) !all(is.na(x))), ]
 
-
 # tag on HMA data
+hma <- CLdata::hma
 hma <- hma[!(hma $ HAName %in% c("Shetlands", "Orkneys")),]
 hma $ hmidx <- 1:nrow(hma)
+gis <- CLdata::gis
 gis @ data <- cbind(gis @ data, over(gis, hma))
 
 # work out neighbourhood structure of hma
@@ -96,6 +79,9 @@ ef $ pDate <- as.POSIXlt(ef $ Date, tz = "GMT", format = "%d/%m/%Y")
 # try using lubridate
 ef $ year <- ef $ pDate $ year + 1900
 ef $ doy <- ef $ pDate $ yday
+# add river classification
+ef $ RIVCLASS <- sapply(strsplit(paste(ef $ RIVCODE), "/"), "[[", 2)
+
 
 # trim data
 ef <- subset(ef, doy > 150 & doy < 325 & year >= 1997 & year <= 2013)
@@ -125,32 +111,6 @@ A most simple model is one where we assume the capture probabilities are everywh
 
 Model fitting proceeds as follows.  First we estimate the capture probability using the optimiser in stan
 
-```{r stanmod, eval=FALSE}
-# compile the model up model
-stanmod <- rstan::stan_model(model_code = "
-data {
-  int<lower=0> N; // number of observations
-  int<lower=0> K; // number of parameters
-  real S[N]; // the number of fishing passes
-  real R[N]; // Zippins R (see seber p 312, eq 7.22)
-  real T[N]; // total catches
-  matrix[N,K] A;
-}
-parameters {
-  vector[K] alpha;
-} 
-model {
-  vector[N] expeta;
-  expeta <- exp(A * alpha);
-  for (i in 1:N) {
-    real p;
-    p <- 1.0/(1.0 + expeta[i]);
-    increment_log_prob(T[i] * log(p));
-    increment_log_prob(T[i] * R[i] * log(1-p));
-    increment_log_prob(-T[i] * log(1 - (1-p)^S[i]) );
-  }
-}")
-```
 
 ```{r somefunctions, echo=FALSE}
 # do some model selection
@@ -159,11 +119,12 @@ summaryMods <- function(lst, m0 = NULL) {
 
   tab <- 
    data.frame(
-    forms = sapply(lst[order(aics)], function(x) paste(deparse(x$formula, width.cutoff = 500L))),
-    aic = sort(aics)
+    forms = sapply(lst, function(x) paste(deparse(x$formula, width.cutoff = 500L))),
+    aic = aics
     )
 
   if (!is.null(m0)) tab $ Daic <- tab $ aic - AIC(m0)
+  tab <- tab[order(aics),]
 
   unique(tab)  
 }
@@ -173,7 +134,6 @@ getModels <- function(vars, n) {
   out <- do.call(expand.grid, lapply(1:n, function(i) 1:length(vars)))
   out <- unique(t(apply(out, 1, sort)))
   out <- out[apply(out, 1, function(x) !any(table(x)>1)),,drop=FALSE]
-  rownames(out) <- NULL
   if (n > 1) {
     apply(out, 1, function(x) paste(vars[x], collapse = " + "))
   } else {
@@ -184,54 +144,33 @@ getModels <- function(vars, n) {
 
 we use the function `efp` which stands for electrofishing p to get the maximum likelihood estimates of $p$ given our model for $p$ and a full model for lambda, in this case it is one $p$ for everything.
 
-```{r basicfit, dependson=c("the-data", "stanmod")}
-m0 <- efp(X ~ 1, data = ef)
+```{r basicfit, dependson=c("the-data")}
+m0 <- efp(X ~ 1, data = ef, passes = "Runs")
 AIC(m0)
 ```
 
 For brevity will focus on a few effects.  We know from preliminary analysis that space has a strong effect
 
-```{r fit1, dependson=c("the-data", "stanmod")}
-m1 <- efp(X ~ te(NEAR_X, NEAR_Y, k = 6), data = ef)
-AIC(m1) - AIC(efp(X ~ 1, data = ef, verbose = FALSE))
-```
-
-```{r plot1, dependson=c("the-data", "stanmod")}
-vis.gam(g1, plot.type = "contour", type = "response")
-plot(hma, add=TRUE)
-```
-
-
-```{r sim1, dependson=c("the-data", "stanmod")}
-# simulation testing
-test <- data.frame(s = 3, T = 100, X = rnorm(100, 170))
-test $ Z <- with(test, X/T)
-m1 <- efp(X ~ 1, data = test)
-1/(1 + exp(m1 $ par))
-```
-
-```{r}
-efS0 <- subset(ef, Species=="Salmon" & LifeStage == "Fry")
-m1 <- efp(X ~ DESCRIPTIO - 1, data = subset(efS0, T>0))
-m1
-sort(m1 $ coefficients)
-
-# get a gam container
-g1 <- gam(G = m1 $ Gsetup)
-g1 $ coefficients[] <- m1 $ par       
-g1 $ Vp[] <- m1 $ Vb
-g1 $ family <- binomial()
-
-ef $ fittedp <- predict(g1, newdata = ef, type = "response")
-
-plot(g1)
-
-
-head(subset(ef[order(ef $ Z),], T > 0), 100)
-head(subset(ef[order(ef $ Z),c("Dataset", "Site.Name", "T", "Z")], T > 10), 200)
-histogram(~ (X/T)/(s-1) | substring(DESCRIPTIO, 1, 7), data = subset(efS0, T > 10))
+```{r fit1, dependson=c("the-data")}
+f1s <- c("Trust",
+         "HAName",
+         "DESCRIPTIO",
+         "factor(CATCH_ID)",
+         "poly(Water_W, 1)",
+         "poly(Elevation_, 1)",
+         "factor(year)",
+         "s(year, k=3)",
+         "poly(Area, 1)",
+         "RIVCLASS"
+         )
+forms <- lapply(getModels(f1s, 1), function(x) as.formula(paste0("X ~ ", x)))
+mods <- lapply(forms, efp, data = ef, passes = "Runs")
+m0 <- efp(X ~ 1, data = ef, passes = "Runs")
+summaryMods(mods, m0 = m0)
+# summaries first fits
 
 ```
+
 
 
 
