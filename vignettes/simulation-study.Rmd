@@ -65,10 +65,10 @@ This provides `r nrow(wk)` observations to play with.  Okay lets simulate some 3
 alpha <- log(0.6/0.4)
 X <- model.matrix( ~ 1, data = wk)
 wk $ p <- (1 + exp(-X %*% alpha))^-1
-wk $ N <- round(wk $ Tobs / (1 - (1-p)^3))
-n1 <- rbinom(nrow(wk), wk $ N, p)
-n2 <- rbinom(nrow(wk), wk $ N - n1, p)
-n3 <- rbinom(nrow(wk), wk $ N - n1 - n2, p)
+wk $ N <- round(wk $ Tobs / (1 - (1-wk $ p)^3))
+n1 <- rbinom(nrow(wk), wk $ N, wk $ p)
+n2 <- rbinom(nrow(wk), wk $ N - n1, wk $ p)
+n3 <- rbinom(nrow(wk), wk $ N - n1 - n2, wk $ p)
 
 wk $ T <- n1 + n2 + n3
 wk $ X <- 2 * n1 + n2
@@ -117,7 +117,7 @@ So it performs well for the simplest of models.  Lets try adding in some covaria
 X <- model.matrix( ~ Species - 1, data = wk)
 alpha <- c(0, 0.4)
 wk $ p <- (1 + exp(-X %*% alpha))^-1
-wk $ N <- round(wk $ Tobs / (1 - (1-p)^3))
+wk $ N <- round(wk $ Tobs / (1 - (1-wk $ p)^3))
 
 CIsim <- 
   sapply(1:100, function(i) {
@@ -149,7 +149,7 @@ So far so good!  Lets try something more complex again...
 X <- model.matrix( ~ Species*LifeStage, data = wk)
 alpha <- c(0, 0.2, 0.3, 0.1)
 wk $ p <- (1 + exp(-X %*% alpha))^-1
-wk $ N <- round(wk $ Tobs / (1 - (1-p)^3))
+wk $ N <- round(wk $ Tobs / (1 - (1-wk $ p)^3))
 
 CIsim <- 
   sapply(1:100, function(i) {
