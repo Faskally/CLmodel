@@ -203,7 +203,7 @@ efp <- function(formula, data = NULL, passes = NULL, verbose=TRUE, init = "0", h
          S = data0 $ S, T = data0 $ T, R = with(data0, S - 1 - Z),
          A = G)
 
-  opt <- optimizing(stanmod, data = standat, algorith = "BFGS", hessian = hessian, verbose = verbose, init = init)
+  opt <- rstan::optimizing(stanmod, data = standat, algorith = "BFGS", hessian = hessian, verbose = verbose, init = init)
    
   opt $ formula <- formula # for printing and summary
   opt $ llik <- opt $ value
