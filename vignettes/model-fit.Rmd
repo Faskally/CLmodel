@@ -32,7 +32,7 @@ In order to model the data we need to convert it to a more convient form and add
 
 ```{r the-data}
 # subset data to remove Stocking, low Runs and no area.
-ef <- subset(CLdata::ef, !is.na(Site_OBJECTID) & !is.na(Area) & Runs > 2 & Stocked == "No")
+ef <- subset(CLdata::ef, !is.na(Site_OBJECTID) & !is.na(Area) & Runs > 2)
 
 # restructure ef
 ef <- do.call(rbind, 
@@ -68,8 +68,8 @@ hmaadj[[which(hma $ HAName == "Inner Hebrides")]] <-  c(21, 42, 43)
 
 # tag on gis data
 ef <- cbind(ef, gis[ef $ Site_OBJECTID,])
-# subset put sites above barriers
-ef <- subset(ef, !barrier)
+# subset put sites above barriers only for density model
+#ef <- subset(ef, !barrier)
 # fix missing value
 ef $ n_R3[is.na(ef $ n_R3) & ef $ Runs == 3] <- 0
 # add on data summaries
@@ -164,14 +164,17 @@ f1s <- c("Trust",
          "s(year, k=3)",
          "poly(Area, 1)",
          "factor(RIVCLASS)",
-         "factor(HC)"
+         "factor(HC)",
+         "Species",
+         "LifeStage",
+         "Species*LifeStage"
          )
 forms <- lapply(getModels(f1s, 1), function(x) as.formula(paste0("X ~ ", x)))
 mods <- lapply(forms, efp, data = ef, passes = "Runs")
-m0 <- efp(X ~ 1, data = ef, passes = "Runs")
 ```
 
 ```{r summary1, dependson=c("fit1")}
+m0 <- efp(X ~ 1, data = ef, passes = "Runs")
 summaryMods(mods, m0 = m0)
 ```
 
@@ -195,6 +198,27 @@ lattice::histogram(~p, data = wk)
 Now we will try and add additional effects
 
 
+```{r fit2, dependson=c("the-data"), results="hide"}
+f1s <- c("Trust",
+         "HAName",
+         "DESCRIPTIO",
+         "factor(CATCH_ID)",
+         "poly(Water_W, 1)",
+         "poly(Elevation_, 1)",
+         "factor(year)",
+         "s(year, k=3)",
+         "poly(Area, 1)",
+         "factor(RIVCLASS)",
+         "factor(HC)",
+         "Species",
+         "LifeStage",
+         "Species*LifeStage"
+         )
+forms <- lapply(getModels(f1s, 1), function(x) as.formula(paste0("X ~ factor(CATCH_ID) + ", x)))
+mods <- lapply(forms, efp, data = ef, passes = "Runs")
+```
 
-
-
+```{r summary2, dependson=c("fit1")}
+m0 <- efp(X ~ factor(CATCH_ID), data = ef, passes = "Runs")
+summaryMods(mods, m0 = m0)
+```
