@@ -154,7 +154,7 @@
 #' @export
 #' @examples
 #' # none yet
-efp <- function(formula, data = NULL, passes = NULL, verbose=TRUE, init = "0") {
+efp <- function(formula, data = NULL, passes = NULL, verbose=TRUE, init = "0", hessian = FALSE) {
 
   if (!exists("stanmod")) {
     message("Building optimiser for first use...")
@@ -203,10 +203,7 @@ efp <- function(formula, data = NULL, passes = NULL, verbose=TRUE, init = "0") {
          S = data0 $ S, T = data0 $ T, R = with(data0, S - 1 - Z),
          A = G)
 
-  opt <- optimizing(stanmod, data = standat, algorith = "BFGS", hessian = TRUE, verbose = verbose, init = init)
-
-  # predict p for rest of data: NB problems can arise here
-  data $ p <- try(transpar(opt $ par, gam(formula, data = data, fit = FALSE) $ X))
+  opt <- optimizing(stanmod, data = standat, algorith = "BFGS", hessian = hessian, verbose = verbose, init = init)
    
   opt $ formula <- formula # for printing and summary
   opt $ llik <- opt $ value
@@ -219,12 +216,12 @@ efp <- function(formula, data = NULL, passes = NULL, verbose=TRUE, init = "0") {
   opt $ df.null <- nrow(G)
   opt $ df.residual <- nrow(G) - ncol(G)
   opt $ rank <- ncol(G)
-  opt $ fitted <- data $ p
+  opt $ fitted <- p <- transpar(opt $ par, G)
   opt $ residuals <- rep(0, nrow(data0))
   opt $ null.deviance <- NA
   opt $ deviance <- NA 
   opt $ family <- binomial()
-  opt $ Vb <- solve(-1 * opt $ hessian)
+  opt $ Vb <- if (hessian) solve(-1 * opt $ hessian) else NULL
   opt $ Gsetup <- Gsetup
 
   # get a gam container
