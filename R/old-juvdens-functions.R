@@ -59,9 +59,9 @@ simplify.graph <- function(g) {
 #' Q <- getQMat(wk_nb)
 #' x <- simQ(exp(-4)*Q)
 #' plot(wk, col = grey( pmax(0, pmin(1, (x + 5) / 10))))
-simQ <- function(Q, tol = 1e-9) {
+simQ <- function(Q, tol = 1e-9, rank = NULL) {
   eQ <- eigen(Q)
-  rank <- sum(eQ $ values > tol)
+  if (is.null(rank)) rank <- sum(eQ $ values > tol)
   colSums(t(eQ $ vectors[,1:rank]) * rnorm(rank, 0, 1/sqrt(eQ $ values[1:rank])))
 }
 
@@ -87,8 +87,8 @@ simQ <- function(Q, tol = 1e-9) {
 #' Q <- getQMat(wk_nb)
 #' x <- simQ(exp(-4)*Q)
 #' plot(wk, col = grey( pmax(0, pmin(1, (x + 5) / 10))))
-simeQ <- function(eQ, k = 1, tol = 1e-9) {
-  rank <- sum(eQ $ values > tol)
+simeQ <- function(eQ, k = 1, tol = 1e-9, rank = NULL) {
+    if (is.null(rank)) rank <- sum(eQ $ values > tol)
   colSums(t(eQ $ vectors[,1:rank]) * rnorm(rank, 0, 1/sqrt(k * eQ $ values[1:rank])))
 }
 
