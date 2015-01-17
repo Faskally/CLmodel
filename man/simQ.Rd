@@ -4,7 +4,7 @@
 \alias{simQ}
 \title{Simulate from an inhomogenous GMRF}
 \usage{
-simQ(Q)
+simQ(Q, tol = 1e-09, rank = NULL)
 }
 \arguments{
 \item{Q}{a symmetric positive semi-definate matrix corresponding

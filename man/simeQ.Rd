@@ -4,7 +4,7 @@
 \alias{simeQ}
 \title{Simulate from an inhomogenous GMRF}
 \usage{
-simeQ(eQ, k = 1, tol = 1e-09)
+simeQ(eQ, k = 1, tol = 1e-09, rank = NULL)
 }
 \arguments{
 \item{eQ}{an eigen decomposition of a symmetric positive semi-definate matrix corresponding
