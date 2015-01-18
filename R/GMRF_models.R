@@ -1,3 +1,4 @@
+#' @export
 smooth.construct.gmrf.smooth.spec <- function(object, data, knots) {
     x <- data[[object$term]]
     x <- factor(x, levels = sort(x))
@@ -59,7 +60,7 @@ smooth.construct.gmrf.smooth.spec <- function(object, data, knots) {
     object
 }
  
-
+#' @export
 Predict.matrix.gmrf.smooth <- function (object, data) {
     x <- factor(data[[object$term]], levels = levels(object$knots))
     X <- model.matrix(~x - 1)
