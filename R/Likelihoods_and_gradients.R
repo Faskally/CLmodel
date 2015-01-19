@@ -198,10 +198,22 @@ efp <- function(formula, data = NULL, passes = NULL, verbose=TRUE, init = "0", h
     G <- Gsetup $ X
   }
 
+  # remove redundant / collinear parameters
+  qr.G <- qr(G)
+  rank.deficient <- qr.G $ pivot[abs(diag(qr.G $ qr)) < 1e-7]
+  if (length(rank.deficient)) {
+    droppar <- paste(colnames(X)[rank.deficient], collapse = "\n\t")
+    warning("*** Model has ", length(rank.deficient)," too many parameter(s)!!\n    i will remove the redundant ones:\n\t", droppar, call. = FALSE)
+    Gfit <- G[,-rank.deficient]
+  } else {
+    Gfit <- G
+  }
+
+
   standat <- 
-    list(N = nrow(G), K = ncol(G), 
+    list(N = nrow(Gfit), K = ncol(Gfit), 
          S = data0 $ S, T = data0 $ T, R = with(data0, S - 1 - Z),
-         A = G)
+         A = Gfit)
   if (!verbose) {
     tmp <- 
       capture.output(
@@ -215,14 +227,15 @@ efp <- function(formula, data = NULL, passes = NULL, verbose=TRUE, init = "0", h
   opt $ llik <- opt $ value
   opt $ terms <- Gsetup $ terms
   opt $ call <- match.call()
-  opt $ aic <- -2 * opt $ llik + 2 * ncol(G)
+  opt $ aic <- -2 * opt $ llik + 2 * ncol(Gfit)
   opt $ G <- G
+  opt $ Gfit <- Gfit
   opt $ coefficients <- opt $ par
-  names(opt $ coefficients) <- colnames(G)
+  names(opt $ coefficients) <- colnames(Gfit)
   opt $ df.null <- nrow(G)
-  opt $ df.residual <- nrow(G) - ncol(G)
-  opt $ rank <- ncol(G)
-  opt $ fitted <- p <- transpar(opt $ par, G)
+  opt $ df.residual <- nrow(G) - ncol(Gfit)
+  opt $ rank <- ncol(Gfit)
+  opt $ fitted <- p <- transpar(opt $ par, Gfit)
   opt $ residuals <- rep(0, nrow(data0))
   opt $ null.deviance <- NA
   opt $ deviance <- NA 
