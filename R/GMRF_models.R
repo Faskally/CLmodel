@@ -1,17 +1,11 @@
 #' @export
 smooth.construct.gmrf.smooth.spec <- function(object, data, knots) {
+    k <- factor(rownames(object$xt$penalty), levels = rownames(object$xt$penalty))
     x <- data[[object$term]]
-    x <- factor(x, levels = sort(x))
-    k <- knots[[object$term]]
-    if (is.null(k)) k <- factor(levels(x), levels = levels(x))
-    else k <- as.factor(k)
-    if (object$bs.dim < 0) 
-        object$bs.dim <- length(levels(k))
-    if (object$bs.dim > length(levels(k))) 
-        stop("GMRF basis dimension set too high")
-    if (sum(!levels(x) %in% levels(k))) 
-        stop("data contain regions that are not contained in the knot specification")
     x <- factor(x, levels = levels(k))
+    #k <- factor(levels(x), levels = levels(x))
+    if (object$bs.dim < 0) object$bs.dim <- length(levels(k))
+    if (object$bs.dim > length(levels(k))) stop("GMRF basis dimension set too high")
     object$X <- model.matrix(~x - 1, )
     # penalty
     object$S[[1]] <- object$xt$penalty
@@ -21,7 +15,7 @@ smooth.construct.gmrf.smooth.spec <- function(object, data, knots) {
         stop("supplied penalty wrong dimension!")
     if (!is.null(colnames(object$S[[1]]))) {
         a.name <- colnames(object$S[[1]])
-        if (all.equal(levels(k), sort(a.name)) != TRUE) {
+        if (all.equal(levels(k), a.name) != TRUE) {
             stop("penalty column names don't match supplied area names!")
         }
         else {
