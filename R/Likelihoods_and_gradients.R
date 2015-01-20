@@ -240,7 +240,7 @@ efp <- function(formula, data = NULL, passes = NULL, verbose=TRUE, init = "0", h
   opt $ null.deviance <- NA
   opt $ deviance <- NA 
   opt $ family <- binomial()
-  opt $ Vb <- if (hessian) solve(-1 * opt $ hessian) else NULL
+  opt $ Vb <- if (hessian) try(solve(-1 * opt $ hessian)) else NULL
   opt $ Gsetup <- Gsetup
 
   # get a gam container

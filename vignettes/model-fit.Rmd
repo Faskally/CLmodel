@@ -87,8 +87,7 @@ ef $ HC <- ifelse(ef $ RIVCLASS == 0, 0,
 
 # trim data
 ef <- subset(ef, doy > 150 & doy < 325 & year >= 1997 & year <= 2013)
-# work only with salmon fry
-#ef <- subset(ef, Species == "Salmon" & LifeStage == "Fry")
+
 ```
 
 now the data is in a suitable form for modelling
@@ -118,14 +117,19 @@ Model fitting proceeds as follows.  First we estimate the capture probability us
 # do some model selection
 summaryMods <- function(lst, m0 = NULL) {
   aics <- sapply(lst, "[[", "aic")
+  bics <- sapply(lst, BIC)
 
   tab <- 
    data.frame(
     forms = sapply(lst, function(x) paste(deparse(x$formula, width.cutoff = 500L))),
-    aic = aics
+    aic = aics,
+    bic = bics
     )
 
-  if (!is.null(m0)) tab $ Daic <- tab $ aic - AIC(m0)
+  if (!is.null(m0)) {
+    tab $ Daic <- tab $ aic - AIC(m0)
+    tab $ Dbic <- tab $ bic - BIC(m0)
+  }
   tab <- tab[order(aics),]
 
   unique(tab)  
@@ -198,27 +202,141 @@ lattice::histogram(~p, data = wk)
 Now we will try and add additional effects
 
 
-```{r fit2, dependson=c("the-data"), results="hide"}
+```{r fit2s, dependson=c("the-data"), results="hide"}
 f1s <- c("Trust",
          "HAName",
          "DESCRIPTIO",
-         "factor(CATCH_ID)",
          "poly(Water_W, 1)",
          "poly(Elevation_, 1)",
          "factor(year)",
          "s(year, k=3)",
          "poly(Area, 1)",
-         "factor(RIVCLASS)",
-         "factor(HC)",
          "Species",
          "LifeStage",
-         "Species*LifeStage"
+         "Species*LifeStage",
+         "poly(Distance_s,1)"
          )
+
+
 forms <- lapply(getModels(f1s, 1), function(x) as.formula(paste0("X ~ factor(CATCH_ID) + ", x)))
-mods <- lapply(forms, efp, data = ef, passes = "Runs")
+m0 <- efp(X ~ factor(CATCH_ID), data = ef, passes = "Runs")
+mods1 <- lapply(forms, efp, data = ef, passes = "Runs")
+
+summaryMods(mods1, m0 = m0)
+
+
+f1s <- c("Trust",
+         "HAName",
+         "DESCRIPTIO",
+         "poly(Water_W, 1)",
+         "poly(Elevation_, 1)",
+         "factor(year)",
+         "s(year, k=3)",
+         "poly(Area, 1)",
+         "poly(Distance_s,1)"
+         )
+forms <- lapply(getModels(f1s, 1), function(x) as.formula(paste0("X ~ factor(CATCH_ID) + Species*LifeStage +", x)))
+m0 <- efp(X ~ factor(CATCH_ID) + Species*LifeStage, data = ef, passes = "Runs")
+mods2 <- lapply(forms, efp, data = ef, passes = "Runs")
+
+summaryMods(mods2, m0 = m0)
+
+
+f1s <- c("HAName",
+         "DESCRIPTIO",
+         "poly(Water_W, 1)",
+         "poly(Elevation_, 1)",
+         "factor(year)",
+         "s(year, k=3)",
+         "poly(Area, 1)",
+         "poly(Distance_s,1)"
+         )
+forms <- lapply(getModels(f1s, 1), function(x) as.formula(paste0("X ~ factor(CATCH_ID) + Species*LifeStage + Trust + ", x)))
+m0 <- efp(X ~ factor(CATCH_ID) + Species*LifeStage + Trust, data = ef, passes = "Runs")
+mods3 <- lapply(forms, efp, data = ef, passes = "Runs")
+
+summaryMods(mods3, m0 = m0)
+
+
+f1s <- c("poly(Water_W, 1)",
+         "poly(Elevation_, 1)",
+         "poly(Area, 1)",
+         "poly(Distance_s,1)"
+         )
+forms <- lapply(getModels(f1s, 1), function(x) as.formula(paste0("X ~ factor(CATCH_ID) + Species*LifeStage + Trust + factor(year) + ", x)))
+m0 <- efp(X ~ factor(CATCH_ID) + Species*LifeStage + Trust + factor(year), data = ef, passes = "Runs")
+mods4 <- lapply(forms, efp, data = ef, passes = "Runs")
+
+summaryMods(mods4, m0 = m0)
+
+
+
+f1s <- c("poly(Water_W, 1)",
+         "poly(Elevation_, 1)",
+         "poly(Distance_s,1)"
+         )
+forms <- lapply(getModels(f1s, 1), function(x) as.formula(paste0("X ~ factor(CATCH_ID) + Species*LifeStage + Trust + factor(year) + poly(Area, 1) + ", x)))
+m0 <- efp(X ~ factor(CATCH_ID) + Species*LifeStage + Trust + factor(year) + poly(Area, 1), data = ef, passes = "Runs")
+mods5 <- lapply(forms, efp, data = ef, passes = "Runs")
+
+summaryMods(mods5, m0 = m0)
+
+f1s <- c("poly(Elevation_, 1)",
+         "poly(Distance_s,1)",
+         "poly(Elevation_, 1) + poly(Distance_s,1)"
+         )
+forms <- lapply(getModels(f1s, 1), function(x) as.formula(paste0("X ~ factor(CATCH_ID) + Species*LifeStage + Trust + factor(year) + poly(Area, 1) + poly(Water_W,1) + ", x)))
+m0 <- efp(X ~ factor(CATCH_ID) + Species*LifeStage + Trust + factor(year) + poly(Area, 1) + poly(Water_W,1), data = ef, passes = "Runs")
+mods6 <- lapply(forms, efp, data = ef, passes = "Runs")
+
+summaryMods(mods6, m0 = m0)
+
+# drop out terms one at a time
+f1s <- c("factor(CATCH_ID)",
+         "Trust",
+         "poly(Water_W, 1)",
+         "factor(year)",
+         "poly(Area, 1)",
+         "Species*LifeStage",
+         "poly(Distance_s,1)"
+         )
+m0 <- efp(as.formula(paste0("X ~ ", paste(f1s, collapse = " + "))), data = ef, passes = "Runs", hessian = TRUE)
+
+eH <- eigen(m0 $ hessian)
+rownames(eH $ vectors) <- colnames(m0 $ G)
+eVs <- zapsmall(eH $ vectors[,which(abs(eH $ values) < 1e-9)])
+eVs[rowSums(abs(eVs)) > 0,]
+# so it is a confounding between trust and catchment
+
+rowSums(with(ef0, table(CATCH_ID, Trust)) > 0)
+TrustFishings <- colSums(with(ef0, table(CATCH_ID, Trust)) > 0)
+names(TrustFishings)[TrustFishings == 1]
+
+with(ef0, table(CATCH_ID, Trust)
+
+
+forms <- lapply(1:length(f1s), function(i) as.formula(paste0("X ~ ", paste(f1s[-i], collapse = " + "))))
+modstest <- lapply(forms, efp, data = ef, passes = "Runs")
+
+out <- summaryMods(modstest, m0 = m0)
+out $ forms <- f1s[as.numeric(rownames(out))]
+out
+
+ef0 <- subset(ef, T > 0)
+g0 <- mgcv::gam(G = m0 $ Gsetup)
+g0 $ coefficients[] <- m0 $ par       
+g0 $ Vp[] <- m0 $ Vb
+g0 $ family <- binomial()
+ef0 $ pfit <- predict(g0, newdata = ef0)
+
+# So there are too many parameters becuase there is some redundancy between trust and catch_id
+
+
+#mbest <- efp(X ~ factor(CATCH_ID) + factor(RIVCLASS) + Species*LifeStage + factor(year) + poly(Area, 1), data = ef, passes = "Runs")
 ```
 
-```{r summary2, dependson=c("fit1")}
-m0 <- efp(X ~ factor(CATCH_ID), data = ef, passes = "Runs")
-summaryMods(mods, m0 = m0)
+
+```{r density_fits, dependson=c("the-data"), results="hide"}
+
+
 ```
