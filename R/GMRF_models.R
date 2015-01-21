@@ -53,7 +53,12 @@ smooth.construct.gmrf.smooth.spec <- function(object, data, knots) {
     object$null.space.dim <- ncol(object$X) - object$rank
     object$knots <- k
     object$df <- ncol(object$X)
-    class(object) <- "gmrf.smooth"
+    object$plot.me <- FALSE
+    #object$fixed <- FALSE # force penalty - no sense in allowing fixed to be false
+    # specify the constraints
+    #object $ C <- NULL 
+
+    class(object) <- c("gmrf.smooth", "random.effect")
     object
 }
  
