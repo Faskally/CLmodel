@@ -43,6 +43,9 @@ smooth.construct.gmrf.smooth.spec <- function(object, data, knots) {
             sum(ind > rp$rank))))
         object$rank <- rp$rank
     }
+    else if (!is.null(object $ xt $ rank)) {
+      object$rank <- object $ xt $ rank
+    }
     else {
         ev <- eigen(object$S[[1]], symmetric = TRUE, only.values = TRUE)$values
         object$rank <- sum(ev > .Machine$double.eps^0.8 * max(ev))
