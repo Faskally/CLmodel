@@ -469,3 +469,35 @@ getData <- function(data, passnames = paste0("S0_R", 1:6)) {
 transpar <- function(par, G) {
    1/(1 + exp(-c(G %*% par)))
 }
+
+
+
+
+#' @export
+summaryMods <- function(lst, m0 = NULL) {
+  aics <- sapply(lst, "[[", "aic")
+
+  tab <- 
+   data.frame(
+    forms = sapply(lst, function(x) paste(deparse(x$formula, width.cutoff = 500L))),
+    aic = aics
+    )
+
+  if (!is.null(m0)) tab $ Daic <- tab $ aic - AIC(m0)
+  tab <- tab[order(aics),]
+
+  unique(tab)  
+}
+
+#' @export
+getModels <- function(vars, n) {
+  if (n > length(vars)) stop("n too big for number of variable")
+  out <- do.call(expand.grid, lapply(1:n, function(i) 1:length(vars)))
+  out <- unique(t(apply(out, 1, sort)))
+  out <- out[apply(out, 1, function(x) !any(table(x)>1)),,drop=FALSE]
+  if (n > 1) {
+    apply(out, 1, function(x) paste(vars[x], collapse = " + "))
+  } else {
+    vars[out]
+  }
+}
