@@ -1,16 +1,23 @@
 
+#' @export
 plotgraph <- function(graph) {
   plot(graph,       #the graph to be plotted
   #layout=layout.fruchterman.reingold, # the layout method. see the igraph documentation for details
-  layout=layout.kamada.kawai,
-  vertex.frame.color='blue',    #the color of the border of the dots 
-  vertex.label.dist=0.5,
-  vertex.label.color='black',   #the color of the name labels
-  vertex.label.cex=.7,      #specifies the size of the font of the labels. can also be made to vary
-  vertex.size = 2,
+  #layout=layout.kamada.kawai,
+  #vertex.frame.color='blue',    #the color of the border of the dots 
+  #vertex.label.dist=0.5,
+  #vertex.label.color='black',   #the color of the name labels
+  #vertex.label.cex=.7,      #specifies the size of the font of the labels. can also be made to vary
+  #vertex.size = 2,
   #edge.label = E(graph)$name,
-  edge.arrow.size = 0.5
-  )
+  #edge.arrow.size = 0.5
+
+  vertex.label=NA,
+  vertex.frame.color = NA,
+  edge.color = NA,
+  vertex.size = 5
+)
+
 }
 
 #' Simulate from an inhomogenous GMRF
@@ -115,6 +122,57 @@ getQMat <- function(g) {
   if (any(Q @ x == 0)) stop("something went wrong")
   Q @ x[] <- -1/Q @ x
   diag(Q) <- degree(g)
+  Q
+}
+
+
+#' Compute RW1 matrix
+#'
+#' Details
+#'
+#' Description - This function does stuff.
+#'
+#' @param nb an input parameter
+#' @return what does it return
+#' @seealso \code{\link{getQMat}} for creating a GMRF from a graph
+#' @export
+# compute RW1 matrix
+getRW1Mat <- function(g) {
+  # is this a connected graph?
+  if (!is.connected(g)) {
+    stop("there are some unconnected vertices...")
+  }
+
+  Q <- g[]
+  if (any(Q @ x == 0)) stop("something went wrong")
+  Q @ x[] <- -1
+  diag(Q) <- apply(g[], 1, function(x) sum(x>0))
+  Q
+}
+
+
+
+
+#' Compute Weighted RW1 matrix
+#'
+#' Details
+#'
+#' Description - This function does stuff.
+#'
+#' @param nb an input parameter
+#' @return what does it return
+#' @seealso \code{\link{getQMat}} for creating a GMRF from a graph
+#' @export
+getWRW1Mat <- function(g) {
+  # is this a connected graph?
+  if (!is.connected(g)) {
+    stop("there are some unconnected vertices...")
+  }
+
+  Q <- g[]
+  if (any(Q @ x == 0)) stop("something went wrong")
+  Q @ x[] <- -1/Q @ x
+  diag(Q) <- apply(g[], 1, function(x) sum(1/x[x>0]))
   Q
 }
 
