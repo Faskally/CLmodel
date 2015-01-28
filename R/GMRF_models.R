@@ -1,3 +1,13 @@
+
+#' Estimate capture probabilites from electrofishing data
+#'
+#' This function uses the marginal likelihood of capture probabilities
+#' to estimate model parameters 
+#' 
+#'
+#' @param formula a formula object
+#' @param data a data.frame containing all relavent info
+#' @return glm type object
 #' @export
 smooth.construct.gmrf.smooth.spec <- function(object, data, knots) {
     k <- factor(rownames(object$xt$penalty), levels = rownames(object$xt$penalty))
@@ -58,10 +68,20 @@ smooth.construct.gmrf.smooth.spec <- function(object, data, knots) {
     # specify the constraints
     #object $ C <- NULL 
 
-    class(object) <- c("gmrf.smooth", "random.effect")
+    class(object) <- "gmrf.smooth"
     object
 }
  
+
+#' Estimate capture probabilites from electrofishing data
+#'
+#' This function uses the marginal likelihood of capture probabilities
+#' to estimate model parameters 
+#' 
+#'
+#' @param formula a formula object
+#' @param data a data.frame containing all relavent info
+#' @return glm type object
 #' @export
 Predict.matrix.gmrf.smooth <- function (object, data) {
     x <- factor(data[[object$term]], levels = levels(object$knots))
