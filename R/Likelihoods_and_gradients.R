@@ -202,7 +202,7 @@ efp <- function(formula, data = NULL, passes = NULL, verbose=TRUE, init = "0", h
   qr.G <- qr(G)
   rank.deficient <- qr.G $ pivot[abs(diag(qr.G $ qr)) < 1e-7]
   if (length(rank.deficient)) {
-    droppar <- paste(colnames(X)[rank.deficient], collapse = "\n\t")
+    droppar <- paste(colnames(G)[rank.deficient], collapse = "\n\t")
     warning("*** Model has ", length(rank.deficient)," too many parameter(s)!!\n    i will remove the redundant ones:\n\t", droppar, call. = FALSE)
     Gfit <- G[,-rank.deficient]
   } else {
