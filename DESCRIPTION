@@ -16,5 +16,4 @@ Suggests:
     CLdata (>= 0.0.1)
 License: file LICENSE
 LazyData: true
-Suggests: knitr
 VignetteBuilder: knitr
