@@ -5,8 +5,7 @@ Authors@R: as.person(c(
     "Colin Millar <C.Millar@marlab.ac.uk> [aut, cre]",
     "Rob Fryer <R.Fryer@marlab.ac.uk> [ctb]",
     "Iain Malcolm <I.Malcolm@marlab.ac.uk> [ctb]"))
-Description:  The package contains set of functions to estimate juvenile
-    densities of Salmon and Trout on river networks
+Description:  The package contains set of functions to estimate juvenile densities of Salmon and Trout on river networks
 Depends: 
      R (>= 3.1.1),
      mgcv (>= 1.8-3)
