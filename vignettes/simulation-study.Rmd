@@ -17,7 +17,7 @@ knitr::opts_chunk$set(
   comment = "",
   message = FALSE,
   cache = TRUE,
-  eval = TRUE)
+  eval = FALSE)
 ```
 
 ## Simulation code

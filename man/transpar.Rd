@@ -18,7 +18,4 @@ a data frame
 The matrix G shoudl be of dimension n x p,
 and the parameter vector should be lenght p
 }
-\examples{
-# none yet
-}
 

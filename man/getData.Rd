@@ -25,7 +25,4 @@ in Seber (1978)
 The data.frame must have the number of passes stored in a colum called 'Runs'
 And fishing area must be in a row called 'Area'
 }
-\examples{
-# none yet
-}
 

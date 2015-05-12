@@ -11,24 +11,11 @@ efp(formula, data = NULL, passes = NULL, verbose = TRUE, init = "0",
 \item{formula}{a formula object}
 
 \item{data}{a data.frame containing all relavent info}
-
-\item{formula}{a formula object}
-
-\item{data}{a data.frame containing all relavent info}
 }
 \value{
 glm type object
-
-glm type object
 }
 \description{
-This function uses the marginal likelihood of capture probabilities
-to estimate model parameters
-}
-\examples{
-# none yet
-Estimate capture probabilites from electrofishing data
-
 This function uses the marginal likelihood of capture probabilities
 to estimate model parameters
 }

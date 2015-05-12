@@ -58,14 +58,14 @@ simplify.graph <- function(g) {
 #' @seealso \code{\link{getQMat}} for creating a GMRF from a graph
 #' @export
 #' @examples
-#' wk <- ctm[ctm $ CATCHMENT %in% c(3:13, 15:50),]
-#' # work out neighbours
-#' wk_nb <- poly2nb(wk, queen = TRUE)
-#' # create a rw2 GMRF precision matrix and simulate some spatial
-#' # structure
-#' Q <- getQMat(wk_nb)
-#' x <- simQ(exp(-4)*Q)
-#' plot(wk, col = grey( pmax(0, pmin(1, (x + 5) / 10))))
+#' #wk <- ctm[ctm $ CATCHMENT %in% c(3:13, 15:50),]
+#' ## work out neighbours
+#' #wk_nb <- poly2nb(wk, queen = TRUE)
+#' ## create a rw2 GMRF precision matrix and simulate some spatial
+#' ## structure
+#' #Q <- getQMat(wk_nb)
+#' #x <- simQ(exp(-4)*Q)
+#' #plot(wk, col = grey( pmax(0, pmin(1, (x + 5) / 10))))
 simQ <- function(Q, tol = 1e-9, rank = NULL) {
   eQ <- eigen(Q)
   if (is.null(rank)) rank <- sum(eQ $ values > tol)
@@ -86,14 +86,14 @@ simQ <- function(Q, tol = 1e-9, rank = NULL) {
 #' @seealso \code{\link{getQMat}} for creating a GMRF from a graph
 #' @export
 #' @examples
-#' wk <- ctm[ctm $ CATCHMENT %in% c(3:13, 15:50),]
-#' # work out neighbours
-#' wk_nb <- poly2nb(wk, queen = TRUE)
-#' # create a rw2 GMRF precision matrix and simulate some spatial
-#' # structure
-#' Q <- getQMat(wk_nb)
-#' x <- simQ(exp(-4)*Q)
-#' plot(wk, col = grey( pmax(0, pmin(1, (x + 5) / 10))))
+#' #wk <- ctm[ctm $ CATCHMENT %in% c(3:13, 15:50),]
+#' ## work out neighbours
+#' #wk_nb <- poly2nb(wk, queen = TRUE)
+#' ## create a rw2 GMRF precision matrix and simulate some spatial
+#' ## structure
+#' #Q <- getQMat(wk_nb)
+#' #x <- simQ(exp(-4)*Q)
+#' #plot(wk, col = grey( pmax(0, pmin(1, (x + 5) / 10))))
 simeQ <- function(eQ, k = 1, tol = 1e-9, rank = NULL) {
     if (is.null(rank)) rank <- sum(eQ $ values > tol)
   colSums(t(eQ $ vectors[,1:rank]) * rnorm(rank, 0, 1/sqrt(k * eQ $ values[1:rank])))
@@ -109,8 +109,6 @@ simeQ <- function(eQ, k = 1, tol = 1e-9, rank = NULL) {
 #' @return what does it return
 #' @seealso \code{\link{getQMat}} for creating a GMRF from a graph
 #' @export
-#' @examples
-#' dim(ctm)
 getQMat <- function(g) {
 
   # is this a connected graph?
@@ -187,8 +185,6 @@ getWRW1Mat <- function(g) {
 #' @return what does it return
 #' @seealso \code{\link{getQMat}} for creating a GMRF from a graph
 #' @export
-#' @examples
-#' plotcatch(4)
 plotcatch <- function(area, add = FALSE) {
     y <- rivs[rivs $ CATCH_ == area,]
 
@@ -220,8 +216,6 @@ plotcatch <- function(area, add = FALSE) {
 #' @return what does it return
 #' @seealso \code{\link{getQMat}} for creating a GMRF from a graph
 #' @export
-#' @examples
-#' plotcatchtile(90)
 plotcatchtile <- function(area) {
     # get the osm tile
     z <- tiles[[paste(area)]]
@@ -255,8 +249,6 @@ plotcatchtile <- function(area) {
 #' @return what does it return
 #' @seealso \code{\link{getQMat}} for creating a GMRF from a graph
 #' @export
-#' @examples
-#' dim(ctm)
 plotrivers <- function(area, osm = FALSE) {
   y <- rivs[rivs $ CATCH_ == area,]
 
@@ -348,9 +340,9 @@ plotrivers <- function(area, osm = FALSE) {
 #' @seealso \code{\link{getQMat}} for creating a GMRF from a graph
 #' @export
 #' @examples
-#' y <- rivs[rivs $ CATCH_NAME == "River Irvine",]
-#' g <- buildTopo(y)
-#' plot(g, vertex.label=NA, vertex.size=2,vertex.size2=2)
+#' #y <- rivs[rivs $ CATCH_NAME == "River Irvine",]
+#' #g <- buildTopo(y)
+#' #plot(g, vertex.label=NA, vertex.size=2,vertex.size2=2)
 buildTopo = function(lines) {
 
     g = gIntersection(lines, lines)
@@ -390,15 +382,15 @@ buildTopo = function(lines) {
 #' @seealso \code{\link{getQMat}} for creating a GMRF from a graph
 #' @export
 #' @examples
-#' y <- rivs[rivs $ CATCH_NAME == "River Irvine",]
-#' g <- buildTopo(y)
+#' #y <- rivs[rivs $ CATCH_NAME == "River Irvine",]
+#' #g <- buildTopo(y)
 #' 
-#' from = cbind(291867.1, 933646.4)
-#' to = cbind(312009.1, 922430.1)
-#' pp = routePoints(g, from, to)
-#' plot(y)
-#' plotRoute(g, pp, col = "blue", lwd = 2, asp = 1,  xlab = "", ylab = "", add = TRUE)
-#' points(rbind(from, to))
+#' #from = cbind(291867.1, 933646.4)
+#' #to = cbind(312009.1, 922430.1)
+#' #pp = routePoints(g, from, to)
+#' #plot(y)
+#' #plotRoute(g, pp, col = "blue", lwd = 2, asp = 1,  xlab = "", ylab = "", add = TRUE)
+#' #points(rbind(from, to))
 plotRoute <- function(graph, nodes, add = FALSE, ...) {
     if (add) {
         lines(V(graph)[nodes]$x, V(graph)[nodes]$y, ...)
@@ -421,12 +413,12 @@ plotRoute <- function(graph, nodes, add = FALSE, ...) {
 #' @seealso \code{\link{getQMat}} for creating a GMRF from a graph
 #' @export
 #' @examples
-#' y <- rivs[rivs $ CATCH_NAME == "River Irvine",]
-#' g <- buildTopo(y)
+#' #y <- rivs[rivs $ CATCH_NAME == "River Irvine",]
+#' #g <- buildTopo(y)
 #' 
-#' from = cbind(291867.1, 933646.4)
-#' to = cbind(312009.1, 922430.1)
-#' pp = routePoints(g, from, to)
+#' #from = cbind(291867.1, 933646.4)
+#' #to = cbind(312009.1, 922430.1)
+#' #pp = routePoints(g, from, to)
 routePoints <- function(graph, from, to) {
     xyg = cbind(V(graph)$x, V(graph)$y)
 
@@ -450,20 +442,6 @@ routePoints <- function(graph, from, to) {
 #' @return what does it return
 #' @seealso \code{\link{getQMat}} for creating a GMRF from a graph
 #' @export
-#' @examples
-#' y <- rivs[rivs $ CATCH_NAME == "River Irvine",]
-#' g <- buildTopo(y)
-
-#' 
-#' from = cbind(291867.1, 933646.4)
-#' to = cbind(312009.1, 922430.1)
-#' pp = routePoints(g, from, to)
-#' plot(y)
-#' plotRoute(g, pp, col = "blue", lwd = 2, asp = 1,  xlab = "", ylab = "", add = TRUE)
-#' points(rbind(from, to))
-#' 
-#' # go auto
-#' plotMyRoute(g, y)
 plotMyRoute <- function(graph, river) {
   # one of mine!
   plotcatch(river @ data $ CATCH_[1])

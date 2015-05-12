@@ -18,9 +18,6 @@ Details
 \details{
 Description - This function does stuff.
 }
-\examples{
-dim(ctm)
-}
 \seealso{
 \code{\link{getQMat}} for creating a GMRF from a graph
 }

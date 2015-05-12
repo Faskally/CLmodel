@@ -20,14 +20,14 @@ Details
 This function does stuff.
 }
 \examples{
-wk <- ctm[ctm $ CATCHMENT \%in\% c(3:13, 15:50),]
-# work out neighbours
-wk_nb <- poly2nb(wk, queen = TRUE)
-# create a rw2 GMRF precision matrix and simulate some spatial
-# structure
-Q <- getQMat(wk_nb)
-x <- simQ(exp(-4)*Q)
-plot(wk, col = grey( pmax(0, pmin(1, (x + 5) / 10))))
+#wk <- ctm[ctm $ CATCHMENT \%in\% c(3:13, 15:50),]
+## work out neighbours
+#wk_nb <- poly2nb(wk, queen = TRUE)
+## create a rw2 GMRF precision matrix and simulate some spatial
+## structure
+#Q <- getQMat(wk_nb)
+#x <- simQ(exp(-4)*Q)
+#plot(wk, col = grey( pmax(0, pmin(1, (x + 5) / 10))))
 }
 \seealso{
 \code{\link{getQMat}} for creating a GMRF from a graph

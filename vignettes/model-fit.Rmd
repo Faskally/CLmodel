@@ -16,7 +16,7 @@ knitr::opts_chunk$set(
   tidy = FALSE,
   comment="",
   message = FALSE,
-  eval=TRUE,
+  eval=FALSE,
   cache=TRUE)
 
 library(sp)
@@ -333,10 +333,4 @@ ef0 $ pfit <- predict(g0, newdata = ef0)
 
 
 #mbest <- efp(X ~ factor(CATCH_ID) + factor(RIVCLASS) + Species*LifeStage + factor(year) + poly(Area, 1), data = ef, passes = "Runs")
-```
-
-
-```{r density_fits, dependson=c("the-data"), results="hide"}
-
-
 ```

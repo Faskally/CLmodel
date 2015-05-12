@@ -19,9 +19,9 @@ Details
 Description - This function does stuff.
 }
 \examples{
-y <- rivs[rivs $ CATCH_NAME == "River Irvine",]
-g <- buildTopo(y)
-plot(g, vertex.label=NA, vertex.size=2,vertex.size2=2)
+#y <- rivs[rivs $ CATCH_NAME == "River Irvine",]
+#g <- buildTopo(y)
+#plot(g, vertex.label=NA, vertex.size=2,vertex.size2=2)
 }
 \seealso{
 \code{\link{getQMat}} for creating a GMRF from a graph

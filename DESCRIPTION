@@ -12,8 +12,7 @@ Depends:
 Imports:
     rstan
 Suggests:
-    knitr (>= 1.8),
-    CLdata (>= 0.0.1)
+    knitr (>= 1.8)
 License: file LICENSE
 LazyData: true
 VignetteBuilder: knitr

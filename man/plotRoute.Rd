@@ -19,15 +19,15 @@ Details
 Description - This function does stuff.
 }
 \examples{
-y <- rivs[rivs $ CATCH_NAME == "River Irvine",]
-g <- buildTopo(y)
+#y <- rivs[rivs $ CATCH_NAME == "River Irvine",]
+#g <- buildTopo(y)
 
-from = cbind(291867.1, 933646.4)
-to = cbind(312009.1, 922430.1)
-pp = routePoints(g, from, to)
-plot(y)
-plotRoute(g, pp, col = "blue", lwd = 2, asp = 1,  xlab = "", ylab = "", add = TRUE)
-points(rbind(from, to))
+#from = cbind(291867.1, 933646.4)
+#to = cbind(312009.1, 922430.1)
+#pp = routePoints(g, from, to)
+#plot(y)
+#plotRoute(g, pp, col = "blue", lwd = 2, asp = 1,  xlab = "", ylab = "", add = TRUE)
+#points(rbind(from, to))
 }
 \seealso{
 \code{\link{getQMat}} for creating a GMRF from a graph
