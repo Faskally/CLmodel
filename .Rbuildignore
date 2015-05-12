@@ -1,2 +1,3 @@
 ^CLmodel.Rproj$
 ^data-raw$
+.travis.yml
