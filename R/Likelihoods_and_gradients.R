@@ -55,6 +55,7 @@ efp <- function(formula, data = NULL, passes = NULL, verbose=TRUE, init = "0", h
   # set up model
   if (nrow(data0) == 1) {
     G <- matrix(1, 1, 1)
+    Gsetup <- list()
   } else {
     Gsetup <- gam(formula, data = data0, fit = FALSE)
     G <- Gsetup $ X
@@ -72,9 +73,17 @@ efp <- function(formula, data = NULL, passes = NULL, verbose=TRUE, init = "0", h
   }
 
 
+  S = data0 $ S
+  T = data0 $ T
+  R = with(data0, S - 1 - Z)
+
+  if(nrow(data0) == 1) {
+    dim(S) <- dim(T) <- dim(R) <- 1
+  }
+
   standat <- 
     list(N = nrow(Gfit), K = ncol(Gfit), 
-         S = data0 $ S, T = data0 $ T, R = with(data0, S - 1 - Z),
+         S = S, T = T, R = R,
          A = Gfit)
   if (!verbose) {
     tmp <- 
