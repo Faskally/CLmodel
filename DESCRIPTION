@@ -5,14 +5,25 @@ Authors@R: as.person(c(
     "Colin Millar <C.Millar@marlab.ac.uk> [aut, cre]",
     "Rob Fryer <R.Fryer@marlab.ac.uk> [ctb]",
     "Iain Malcolm <I.Malcolm@marlab.ac.uk> [ctb]"))
-Description:  The package contains set of functions to estimate juvenile densities of Salmon and Trout on river networks
-Depends: 
-     R (>= 3.1.1),
-     mgcv (>= 1.8-3)
+Description: Functions to estimate juvenile densities of Salmon and Trout on river networks.
+Depends:
+      R (>= 3.1.1),
+      mgcv (>= 1.8-3)
 Imports:
-    rstan
+    rstan,
+    igraph,
+    ggplot2,
+    ggmap,
+    rgeos,
+    sp,
+    FNN,
+    OpenStreetMap
 Suggests:
-    knitr (>= 1.8)
+      knitr (>= 1.8),
+      spdep,
+      rmarkdown
 License: file LICENSE
 LazyData: true
 VignetteBuilder: knitr
+RoxygenNote: 7.2.3
+Encoding: UTF-8

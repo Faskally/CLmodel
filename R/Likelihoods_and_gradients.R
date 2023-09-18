@@ -1,7 +1,9 @@
 
+.pkgenv <- new.env(parent = emptyenv())
+
 #
 # Purpose: fit capture probabilities and abundances to electrofishing data
-# 
+#
 # author: CP Millar, millarc@marlab.ac.uk
 # origional date: 12/2014
 #
@@ -9,16 +11,21 @@
 #' Estimate capture probabilites from electrofishing data
 #'
 #' This function uses the marginal likelihood of capture probabilities
-#' to estimate model parameters 
-#' 
+#' to estimate model parameters
+#'
 #'
 #' @param formula a formula object
 #' @param data a data.frame containing all relavent info
+#' @param passes todo
+#' @param verbose show verbose output
+#' @param init todo
+#' @param hessian return hessian or not
+#'
 #' @return glm type object
 #' @export
 efp <- function(formula, data = NULL, passes = NULL, verbose=TRUE, init = "0", hessian = FALSE) {
 
-  if (!exists("stanmod")) {
+  if (!exists("stanmod", envir = .pkgenv)) {
     message("Building optimiser for first use...")
     stanmod <- rstan::stan_model(model_code = "
       data {
@@ -31,7 +38,7 @@ efp <- function(formula, data = NULL, passes = NULL, verbose=TRUE, init = "0", h
       }
       parameters {
         vector[K] alpha;
-      } 
+      }
       model {
         vector[N] expeta;
         expeta <- exp(A * alpha);
@@ -43,7 +50,7 @@ efp <- function(formula, data = NULL, passes = NULL, verbose=TRUE, init = "0", h
           increment_log_prob(-T[i] * log(1 - (1-p)^S[i]) );
         }
       }")
-    assign("stanmod", stanmod, .GlobalEnv)
+    assign("stanmod", stanmod, envir = .pkgenv)
   }
 
   if (is.null(data)) stop("must supply data")
@@ -81,18 +88,18 @@ efp <- function(formula, data = NULL, passes = NULL, verbose=TRUE, init = "0", h
     dim(S) <- dim(T) <- dim(R) <- 1
   }
 
-  standat <- 
-    list(N = nrow(Gfit), K = ncol(Gfit), 
+  standat <-
+    list(N = nrow(Gfit), K = ncol(Gfit),
          S = S, T = T, R = R,
          A = Gfit)
   if (!verbose) {
-    tmp <- 
+    tmp <-
       capture.output(
-        opt <- rstan::optimizing(stanmod, data = standat, algorith = "BFGS", hessian = hessian, verbose = verbose, init = init)
+        opt <- rstan::optimizing(.pkgenv$stanmod, data = standat, algorith = "BFGS", hessian = hessian, verbose = verbose, init = init)
       )
   } else {
-    opt <- rstan::optimizing(stanmod, data = standat, algorith = "BFGS", hessian = hessian, verbose = verbose, init = init)
-  } 
+    opt <- rstan::optimizing(.pkgenv$stanmod, data = standat, algorith = "BFGS", hessian = hessian, verbose = verbose, init = init)
+  }
 
   opt $ formula <- formula # for printing and summary
   opt $ llik <- opt $ value
@@ -109,14 +116,14 @@ efp <- function(formula, data = NULL, passes = NULL, verbose=TRUE, init = "0", h
   opt $ fitted <- p <- transpar(opt $ par, Gfit)
   opt $ residuals <- rep(0, nrow(data0))
   opt $ null.deviance <- NA
-  opt $ deviance <- NA 
+  opt $ deviance <- NA
   opt $ family <- binomial()
   opt $ Vb <- if (hessian) try(solve(-1 * opt $ hessian)) else NULL
   opt $ Gsetup <- Gsetup
 
   # get a gam container
   # g1 <- gam(G = Gsetup)
-  # g1 $ coefficients[] <- opt $ par       
+  # g1 $ coefficients[] <- opt $ par
   # g1 $ Vp[] <- opt $ Vb
   # g1 $ family <- binomial()
   # X <- predict(g1, type = "lpmatrix")
@@ -135,17 +142,17 @@ efp <- function(formula, data = NULL, passes = NULL, verbose=TRUE, init = "0", h
 
 #' Calculate the relavent statistics for fitting electrifishing models
 #'
-#' Basically, only three bits of info are needed from every electrofishing 
+#' Basically, only three bits of info are needed from every electrofishing
 #' event: The total catch, T, and a kind of cumulative catch measure termed X
 #' in Seber (1978)
 #'
 #' The data.frame must have the number of passes stored in a colum called 'Runs'
 #' And fishing area must be in a row called 'Area'
 #'
-#' @param data a data.frame containing all relavent info.  
+#' @param data a data.frame containing all relavent info.
 #' @param passnames a character vector giving the names of the columns in which
-#'                  the catch data reside.  These must be ordered so that the 
-#'                  first comes first, etc. 
+#'                  the catch data reside.  These must be ordered so that the
+#'                  first comes first, etc.
 #' @return a data frame
 #' @export
 getData <- function(data, passnames = paste0("S0_R", 1:6)) {
@@ -168,14 +175,16 @@ getData <- function(data, passnames = paste0("S0_R", 1:6)) {
     )
 }
 
-#' Utility function to convert parameters to probabilities 
+#' Utility function to convert parameters to probabilities
 #'
-#' The matrix G shoudl be of dimension n x p, 
+#' The matrix G shoudl be of dimension n x p,
 #' and the parameter vector should be lenght p
 #'
 #' @param par fitted model parameters
-#' @param G The design matrix for a model 
+#' @param G The design matrix for a model
+#'
 #' @return a data frame
+#'
 #' @export
 transpar <- function(par, G) {
    1/(1 + exp(-c(G %*% par)))
@@ -184,12 +193,19 @@ transpar <- function(par, G) {
 
 
 
+#' To do
+#'
+#' to do
+#'
+#' @param lst todo
+#' @param m0 todo
+#'
 #' @export
 summaryMods <- function(lst, m0 = NULL) {
   #aics <- sapply(lst, AIC)
   aics <- sapply(lst, BIC)
 
-  tab <- 
+  tab <-
    data.frame(
     forms = sapply(lst, function(x) paste(deparse(x$formula, width.cutoff = 500L))),
     aic = aics
@@ -198,9 +214,16 @@ summaryMods <- function(lst, m0 = NULL) {
   if (!is.null(m0)) tab $ Daic <- tab $ aic - AIC(m0)
   tab <- tab[order(aics),]
 
-  unique(tab)  
+  unique(tab)
 }
 
+#' To do
+#'
+#' to do
+#'
+#' @param vars todo
+#' @param n todo
+#'
 #' @export
 getModels <- function(vars, n) {
   if (n > length(vars)) stop("n too big for number of variable")
@@ -213,4 +236,3 @@ getModels <- function(vars, n) {
     vars[out]
   }
 }
-

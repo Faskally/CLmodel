@@ -1,10 +1,15 @@
-
+#' Plot a graph
+#'
+#' plots a graph
+#'
+#' @param graph the graph to be plotted
+#'
 #' @export
 plotgraph <- function(graph) {
   plot(graph,       #the graph to be plotted
   #layout=layout.fruchterman.reingold, # the layout method. see the igraph documentation for details
   #layout=layout.kamada.kawai,
-  #vertex.frame.color='blue',    #the color of the border of the dots 
+  #vertex.frame.color='blue',    #the color of the border of the dots
   #vertex.label.dist=0.5,
   #vertex.label.color='black',   #the color of the name labels
   #vertex.label.cex=.7,      #specifies the size of the font of the labels. can also be made to vary
@@ -20,16 +25,18 @@ plotgraph <- function(graph) {
 
 }
 
+globalVariables("nei")
+
 #' Simulate from an inhomogenous GMRF
 #'
 #' Details
 #'
 #' This function does stuff.
 #'
-#' @param Q a symmetric positive semi-definate matrix corresponding
-#'     to an inhomogenous GMRF
-#' @return a single draw from with the appropriate covariance structure
-#' @seealso \code{\link{getQMat}} for creating a GMRF from a graph
+#' @param g a graph object
+#'
+#' @return a simplified graph
+#'
 #' @export
 simplify.graph <- function(g) {
   # choose a vertex with degree 2
@@ -54,8 +61,13 @@ simplify.graph <- function(g) {
 #'
 #' @param Q a symmetric positive semi-definate matrix corresponding
 #'     to an inhomogenous GMRF
+#' @param tol tolerance in deciding what is rank deficiency
+#' @param rank prespecify the rank
+#'
 #' @return a single draw from with the appropriate covariance structure
+#'
 #' @seealso \code{\link{getQMat}} for creating a GMRF from a graph
+#'
 #' @export
 #' @examples
 #' #wk <- ctm[ctm $ CATCHMENT %in% c(3:13, 15:50),]
@@ -82,8 +94,14 @@ simQ <- function(Q, tol = 1e-9, rank = NULL) {
 #'
 #' @param eQ an eigen decomposition of a symmetric positive semi-definate matrix corresponding
 #'     to an inhomogenous GMRF
+#' @param k todo
+#' @param tol tolerance in deciding what is rank deficiency
+#' @param rank prespecify the rank
+#'
 #' @return a single draw from with the appropriate covariance structure
+#'
 #' @seealso \code{\link{getQMat}} for creating a GMRF from a graph
+#'
 #' @export
 #' @examples
 #' #wk <- ctm[ctm $ CATCHMENT %in% c(3:13, 15:50),]
@@ -105,8 +123,10 @@ simeQ <- function(eQ, k = 1, tol = 1e-9, rank = NULL) {
 #'
 #' Description - This function does stuff.
 #'
-#' @param nb an input parameter
-#' @return what does it return
+#' @param g a graph object
+#'
+#' @return precision matrix
+#'
 #' @seealso \code{\link{getQMat}} for creating a GMRF from a graph
 #' @export
 getQMat <- function(g) {
@@ -130,8 +150,10 @@ getQMat <- function(g) {
 #'
 #' Description - This function does stuff.
 #'
-#' @param nb an input parameter
-#' @return what does it return
+#' @param g a graph object
+#'
+#' @return precision matrix
+#'
 #' @seealso \code{\link{getQMat}} for creating a GMRF from a graph
 #' @export
 # compute RW1 matrix
@@ -157,8 +179,10 @@ getRW1Mat <- function(g) {
 #'
 #' Description - This function does stuff.
 #'
-#' @param nb an input parameter
-#' @return what does it return
+#' @param g a graph object
+#'
+#' @return precision matrix
+#'
 #' @seealso \code{\link{getQMat}} for creating a GMRF from a graph
 #' @export
 getWRW1Mat <- function(g) {
@@ -181,11 +205,17 @@ getWRW1Mat <- function(g) {
 #'
 #' Description - This function does stuff.
 #'
-#' @param nb an input parameter
+#' @param area an input parameter
+#' @param rivs the river network spatial object
+#' @param ctm the catchment spatial object
+#' @param gis dont know - sample points perhaps spatial data
+#' @param add add to an existing plot
+#'
 #' @return what does it return
+#'
 #' @seealso \code{\link{getQMat}} for creating a GMRF from a graph
 #' @export
-plotcatch <- function(area, add = FALSE) {
+plotcatch <- function(area, rivs, ctm, gis, add = FALSE) {
     y <- rivs[rivs $ CATCH_ == area,]
 
     HC <- unique(floor(y $ HYDRO_CODE))
@@ -195,7 +225,7 @@ plotcatch <- function(area, add = FALSE) {
     plot(y[y $ HYDRO_CODE == 0,], col = "lightgreen", add = TRUE)
     if (sum(y $ HYDRO_CODE > 0)) {
         plot(y[floor(y $ HYDRO_CODE) %in% HC,], add = TRUE, col = "red")
-        if (sum(y $ HYDRO_CODE %in% HC))  
+        if (sum(y $ HYDRO_CODE %in% HC))
           plot(y[y $ HYDRO_CODE %in% HC,], add = TRUE, col = "blue")
     }
     title(main = y $ CATCH_NAME[1])
@@ -212,11 +242,15 @@ plotcatch <- function(area, add = FALSE) {
 #'
 #' Description - This function does stuff.
 #'
-#' @param nb an input parameter
+#' @param area an input parameter
+#' @param rivs the river network spatial object
+#' @param gis dont know - sample points perhaps spatial data
+#' @param tiles the osm tiles
+#'
 #' @return what does it return
 #' @seealso \code{\link{getQMat}} for creating a GMRF from a graph
 #' @export
-plotcatchtile <- function(area) {
+plotcatchtile <- function(area, rivs, gis, tiles) {
     # get the osm tile
     z <- tiles[[paste(area)]]
 
@@ -229,15 +263,17 @@ plotcatchtile <- function(area) {
     x <- spTransform(x, z $ tiles[[1]] $ projection)
 
     # convert local catchmentboundaries
-    #w <-     
+    #w <-
     plot(z)
     plot(y, add = TRUE, col = "darkblue", lwd = 2)
     plot(x, add = TRUE, pch = 16, col = "red")
     #plot(ctm, border = grey(0.3), add = TRUE)
     title(main = y $ CATCH_NAME[1])
-} 
+}
 
 
+
+globalVariables(c("x", "OBJECTID", "grp"))
 
 #' Title
 #'
@@ -245,11 +281,15 @@ plotcatchtile <- function(area) {
 #'
 #' Description - This function does stuff.
 #'
-#' @param nb an input parameter
+#' @param area an input parameter
+#' @param rivs the river network spatial object
+#' @param osm todo
+#'
 #' @return what does it return
+#'
 #' @seealso \code{\link{getQMat}} for creating a GMRF from a graph
 #' @export
-plotrivers <- function(area, osm = FALSE) {
+plotrivers <- function(area, rivs, osm = FALSE) {
   y <- rivs[rivs $ CATCH_ == area,]
 
   bbox <- as.data.frame(t(y @ bbox))
@@ -262,7 +302,7 @@ plotrivers <- function(area, osm = FALSE) {
 
   ## assign original coordinate system
   ## Then to transform it to WGS84
-  bboxll <- spTransform(SpatialPoints(cbind(bbox$x, bbox$y), CRS(bng)), 
+  bboxll <- spTransform(SpatialPoints(cbind(bbox$x, bbox$y), CRS(bng)),
                         CRS(wgs84)) @ coords
 
   # get map
@@ -292,12 +332,12 @@ plotrivers <- function(area, osm = FALSE) {
   id <- rep(1:length(y), np)
   xys <- cbind(xys, y @ data[id,])
   xys $ seg <- id
-  xys $ grp <- with(xys, ifelse(HYDRO_CODE == 0, "No Code", 
-                           ifelse(HYDRO_CODE == 10, "Main", 
+  xys $ grp <- with(xys, ifelse(HYDRO_CODE == 0, "No Code",
+                            ifelse(HYDRO_CODE == 10, "Main",
                               ifelse(floor(HYDRO_CODE) == HYDRO_CODE, "Other Baseline",
                                   "Other river"))))
 
-  mytheme <- 
+  mytheme <-
     theme(axis.line        = element_blank(),
           axis.text.x      = element_blank(),
           axis.text.y      = element_blank(),
@@ -312,12 +352,13 @@ plotrivers <- function(area, osm = FALSE) {
           plot.background  = element_blank())
 
 
-  gl <- geom_line(aes(x = x, y = y, 
+  gl <- geom_line(aes(x = x, y = y,
                       group = OBJECTID,
                       colour = factor(grp)
-                      ), 
+                      ),
                   size = 0.5,
                   data = xys)
+
   if (osm) {
     gg <- autoplot(gm) + mytheme + gl
   } else {
@@ -335,7 +376,7 @@ plotrivers <- function(area, osm = FALSE) {
 #'
 #' Description - This function does stuff.
 #'
-#' @param nb an input parameter
+#' @param lines an input parameter
 #' @return what does it return
 #' @seealso \code{\link{getQMat}} for creating a GMRF from a graph
 #' @export
@@ -349,7 +390,7 @@ buildTopo = function(lines) {
     edges = do.call(rbind, lapply(g@lines[[1]]@Lines, function(ls) {
         as.vector(t(ls@coords))
     }))
-    lengths = sqrt((edges[, 1] - edges[, 3])^2 + (edges[, 
+    lengths = sqrt((edges[, 1] - edges[, 3])^2 + (edges[,
         2] - edges[, 4])^2)
 
     froms = paste(edges[, 1], edges[, 2])
@@ -377,14 +418,19 @@ buildTopo = function(lines) {
 #'
 #' Description - This function does stuff.
 #'
-#' @param nb an input parameter
+#' @param graph an input parameter
+#' @param nodes todo
+#' @param add add to an existing plot
+#' @param ... todo
+#'
 #' @return what does it return
+#'
 #' @seealso \code{\link{getQMat}} for creating a GMRF from a graph
 #' @export
 #' @examples
 #' #y <- rivs[rivs $ CATCH_NAME == "River Irvine",]
 #' #g <- buildTopo(y)
-#' 
+#'
 #' #from = cbind(291867.1, 933646.4)
 #' #to = cbind(312009.1, 922430.1)
 #' #pp = routePoints(g, from, to)
@@ -395,7 +441,7 @@ plotRoute <- function(graph, nodes, add = FALSE, ...) {
     if (add) {
         lines(V(graph)[nodes]$x, V(graph)[nodes]$y, ...)
     } else {
-        plot(V(graph)[nodes]$x, V(graph)[nodes]$y, type = "l", 
+        plot(V(graph)[nodes]$x, V(graph)[nodes]$y, type = "l",
             ...)
     }
 }
@@ -408,14 +454,16 @@ plotRoute <- function(graph, nodes, add = FALSE, ...) {
 #'
 #' Description - This function does stuff.
 #'
-#' @param nb an input parameter
+#' @param graph an input parameter
+#' @param from todo
+#' @param to todo
 #' @return what does it return
 #' @seealso \code{\link{getQMat}} for creating a GMRF from a graph
 #' @export
 #' @examples
 #' #y <- rivs[rivs $ CATCH_NAME == "River Irvine",]
 #' #g <- buildTopo(y)
-#' 
+#'
 #' #from = cbind(291867.1, 933646.4)
 #' #to = cbind(312009.1, 922430.1)
 #' #pp = routePoints(g, from, to)
@@ -438,8 +486,11 @@ routePoints <- function(graph, from, to) {
 #'
 #' Description - This function does stuff.
 #'
-#' @param nb an input parameter
+#' @param graph an input parameter
+#' @param river todo
+#'
 #' @return what does it return
+#'
 #' @seealso \code{\link{getQMat}} for creating a GMRF from a graph
 #' @export
 plotMyRoute <- function(graph, river) {
@@ -450,7 +501,7 @@ plotMyRoute <- function(graph, river) {
   points(rbind(from, to))
   pp = routePoints(graph, from, to)
   plotRoute(graph, pp, col = "blue", lwd = 2, asp = 1,  xlab = "", ylab = "", add = TRUE)
-  #plot(river, add = TRUE)    
+  #plot(river, add = TRUE)
 }
 
 
@@ -458,7 +509,7 @@ plotMyRoute <- function(graph, river) {
 
 
 # some useful functions
-riverNext <- function(ID, by.distance = FALSE) {
+riverNext <- function(ID, rivs, by.distance = FALSE) {
   L1 <- rivs[rivs $ OBJECTID == ID,]
   if (L1 $ TNODE_ == 0) {
     cat("unconnected node\n")
@@ -477,13 +528,13 @@ riverNext <- function(ID, by.distance = FALSE) {
     cat("river mouth\n")
     return(NA)
   }
-  L2ind <- which.min(dist) 
+  L2ind <- which.min(dist)
   L2 <- L2s[L2ind,]
 
   rbind(L1, L2)
 }
 
-riverEnd <- function(ID, add = FALSE, old = NULL, plot = FALSE) {
+riverEnd <- function(ID, rivs, add = FALSE, old = NULL, plot = FALSE) {
   route <- rep(NA, 100)
   route[1] <- ID
   rnext <- riverNext(ID)
@@ -495,8 +546,3 @@ riverEnd <- function(ID, add = FALSE, old = NULL, plot = FALSE) {
   }
   route[!is.na(route)]
 }
-
-
-
-
-

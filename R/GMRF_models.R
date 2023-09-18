@@ -2,12 +2,14 @@
 #' Estimate capture probabilites from electrofishing data
 #'
 #' This function uses the marginal likelihood of capture probabilities
-#' to estimate model parameters 
-#' 
+#' to estimate model parameters
 #'
-#' @param formula a formula object
+#' @param object a gmrf smooth object
 #' @param data a data.frame containing all relavent info
+#' @param knots todo
+#'
 #' @return glm type object
+#'
 #' @export
 smooth.construct.gmrf.smooth.spec <- function(object, data, knots) {
     k <- factor(rownames(object$xt$penalty), levels = rownames(object$xt$penalty))
@@ -19,9 +21,9 @@ smooth.construct.gmrf.smooth.spec <- function(object, data, knots) {
     object$X <- model.matrix(~x - 1, )
     # penalty
     object$S[[1]] <- object$xt$penalty
-    if (ncol(object$S[[1]]) != nrow(object$S[[1]])) 
+    if (ncol(object$S[[1]]) != nrow(object$S[[1]]))
         stop("supplied penalty not square!")
-    if (ncol(object$S[[1]]) != ncol(object$X)) 
+    if (ncol(object$S[[1]]) != ncol(object$X))
         stop("supplied penalty wrong dimension!")
     if (!is.null(colnames(object$S[[1]]))) {
         a.name <- colnames(object$S[[1]])
@@ -43,13 +45,13 @@ smooth.construct.gmrf.smooth.spec <- function(object, data, knots) {
             object$X <- rbind(matrix(0, length(mi), np), object$X)
             for (i in 1:length(mi)) object$X[i, mi[i]] <- 1
         }
-        rp <- mgcv:::nat.param(object$X, object$S[[1]], type = 0)
+        rp <- nat.param(object$X, object$S[[1]], type = 0)
         ind <- (np - object$bs.dim + 1):np
-        object$X <- if (length(mi)) 
+        object$X <- if (length(mi))
             rp$X[-(1:length(mi)), ind]
         else rp$X[, ind]
         object$P <- rp$P[, ind]
-        object$S[[1]] <- diag(c(rp$D[ind[ind <= rp$rank]], rep(0, 
+        object$S[[1]] <- diag(c(rp$D[ind[ind <= rp$rank]], rep(0,
             sum(ind > rp$rank))))
         object$rank <- rp$rank
     }
@@ -66,28 +68,29 @@ smooth.construct.gmrf.smooth.spec <- function(object, data, knots) {
     object$plot.me <- FALSE
     #object$fixed <- FALSE # force penalty - no sense in allowing fixed to be false
     # specify the constraints
-    #object $ C <- NULL 
+    #object $ C <- NULL
 
     class(object) <- "gmrf.smooth"
     object
 }
- 
+
 
 #' Estimate capture probabilites from electrofishing data
 #'
 #' This function uses the marginal likelihood of capture probabilities
-#' to estimate model parameters 
-#' 
+#' to estimate model parameters
 #'
-#' @param formula a formula object
+#'
+#' @param object a gmrf smooth object
 #' @param data a data.frame containing all relavent info
+#'
 #' @return glm type object
+#'
 #' @export
 Predict.matrix.gmrf.smooth <- function (object, data) {
     x <- factor(data[[object$term]], levels = levels(object$knots))
     X <- model.matrix(~x - 1)
-    if (!is.null(object$P)) 
+    if (!is.null(object$P))
         X <- X %*% object$P
     X
 }
-

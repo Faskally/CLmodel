@@ -4,7 +4,7 @@ author: "Colin Millar"
 date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteIndexEntry{Simulation study for density and capture probability estimation from electrofishing data}
   %\VignetteEngine{knitr::rmarkdown}
   %\usepackage[utf8]{inputenc}
 ---
@@ -28,8 +28,8 @@ Lets begin with a simple simulation.  First lets setup a basic data.frame from w
 wk <- subset(CLdata::ef, Dataset == "fobs")
 
 # restructure
-wk <- do.call(rbind, 
-        lapply(c("S0", "SP", "T0", "TP"), 
+wk <- do.call(rbind,
+        lapply(c("S0", "SP", "T0", "TP"),
             function(x) {
               out <- wk[c("Site_OBJECTID", "Site.Name", "Dataset", "Date", "Runs", "Area", paste0(x, "_R", 1:6))]
               names(out) <- gsub(x, "n", names(out))
@@ -58,7 +58,10 @@ wk <- subset(wk, doy > 150 & doy < 325 & year >= 1997 & year <= 2013 & Runs == 3
 head(wk)
 ```
 
-This provides `r nrow(wk)` observations to play with.  Okay lets simulate some 3 pass data using a constant capture probabilty, but try and get similar values for the total number of fish observed.
+```{r text1, results="asis", dependson = "dataframe1"}
+test <- paste("This provides", nrow(wk), "observations to play with.  Okay lets simulate some 3 pass data using a constant capture probabilty, but try and get similar values for the total number of fish observed.")
+cat(test)
+```
 
 ```{r sim1_setup, dependson = "dataframe1"}
 # choose model parameter to give p of 0.6
@@ -85,7 +88,7 @@ CI <- with(m0, rep(coefficients, each=2) + outer(c(-2, 2), sqrt(diag(m0 $ Vb))))
 Lets try doing this 100 times and store the results of CI
 
 ```{r sim1_100fits, results = 'hide', dependson = "sim1_setup"}
-CIsim <- 
+CIsim <-
   sapply(1:100, function(i) {
     n1 <- rbinom(nrow(wk), wk $ N, wk $ p)
     n2 <- rbinom(nrow(wk), wk $ N - n1, wk $ p)
@@ -119,7 +122,7 @@ alpha <- c(0, 0.4)
 wk $ p <- (1 + exp(-X %*% alpha))^-1
 wk $ N <- round(wk $ Tobs / (1 - (1-wk $ p)^3))
 
-CIsim <- 
+CIsim <-
   sapply(1:100, function(i) {
     n1 <- rbinom(nrow(wk), wk $ N, wk $ p)
     n2 <- rbinom(nrow(wk), wk $ N - n1, wk $ p)
@@ -151,7 +154,7 @@ alpha <- c(0, 0.2, 0.3, 0.1)
 wk $ p <- (1 + exp(-X %*% alpha))^-1
 wk $ N <- round(wk $ Tobs / (1 - (1-wk $ p)^3))
 
-CIsim <- 
+CIsim <-
   sapply(1:100, function(i) {
     n1 <- rbinom(nrow(wk), wk $ N, wk $ p)
     n2 <- rbinom(nrow(wk), wk $ N - n1, wk $ p)
@@ -167,7 +170,7 @@ CIsim <-
 ```
 
 ```{r table_sim3, dependson = "sim3"}
-inCI <- CIsim[seq(1, nrow(CIsim), by=2),] < alpha & 
+inCI <- CIsim[seq(1, nrow(CIsim), by=2),] < alpha &
         CIsim[seq(2, nrow(CIsim), by=2),] > alpha
 out <- rowMeans(inCI)
 names(out) <- paste("alpha", 1:length(out))
@@ -175,5 +178,3 @@ out
 ```
 
 Excellent performance so far :).
-
-
